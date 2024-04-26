@@ -43,8 +43,8 @@ A RTP packet consist of following fields followed by an optional RTP Header exte
 
 ### Serializer
     1. Call `Rtp_Init()` to initialize the RTP Context.
-    2. Populate the fields of the RTP packet with the desired values.
-    3. Call `Rtp_Serialize()` to serialize the RTP packet passed.
+    2. Initialize an RtpPacket_t with the desired values.
+    3. Call `Rtp_Serialize()` to serialize the RtpPacket_t passed.
 
 ### Deserializer
     1. Call `Rtp_Init()` to initialize the RTP Context.
@@ -53,19 +53,23 @@ A RTP packet consist of following fields followed by an optional RTP Header exte
 
 ## Packetization
     1. Call `<Codec>Packetization_Init()` to intitializae the particular codec context.
-    2. In case of H.264 Codedc packetization,` is returned. call `H264Packetizer_AddFrame()` or
-       `H264Packetizer_AddNalu()` to add frame or individual NALUs.
-    3. Call `<Codec>Packetizer_GetPacket()` in a loop to retrieve the packets iteratively
-       unless `<Codec>_RESULT_NO_MORE_PACKETS` is returned.
+    2. In case of H.264 Codec packetization -
+        - Call `H264Packetizer_AddFrame()` to add  a frame OR
+        - Call `H264Packetizer_AddNalu()` repeatedly to add NALUs of a frame.
+    3. For all codes other than H.264, call `<Codec>Packetizer_AddFrame()` to add a frame.
+    4. Call `<Codec>Packetizer_GetPacket()` repeatedly to retrieve the packets
+       until `<Codec>_RESULT_NO_MORE_PACKETS` is returned.
 
 ## Depacketization
     1. Call `<Codec>Depacketization_Init()` to initialize the codec context.
-    2. Call `<Codec>Depacketizer_AddPacket()` to add all packets received corresponding
-       to one frame.
-    3. In case of H.264 Call  `H264Depacketizer_GetNalu()` iteratively to get all the NALUs
-       one by one untill H264_RESULT_NO_MORE_NALUS is returned.
-    4. Call `<Codec>Depacketizer_GetFrame()` to get the complete frame once all packets are
-       added.
+    2. Call `<Codec>Depacketizer_AddPacket()` repeatedly to add all packets received
+       corresponding to one frame.
+    3. In case of H.264 Codec depacketization -
+       - Call `H264Depacketizer_GetFrame()` to get a frame OR
+       - Call `H264Depacketizer_GetNalu()` iteratively to get NALUs one by one until
+         H264_RESULT_NO_MORE_NALUS is returned.
+    4. For all codes other than H.264, Call `<Codec>Depacketizer_GetFrame()` to get the
+       complete frame once all packets are added.
 
 ## License
 
