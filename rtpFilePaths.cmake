@@ -3,16 +3,25 @@
 # in their Cmake based build system by including this file.
 
 # RTP library source files.
-set( RTP_SOURCES
-     "${CMAKE_CURRENT_LIST_DIR}/source/rtp_api.c"
-     "${CMAKE_CURRENT_LIST_DIR}/source/rtp_endianness.c" )
+file( GLOB RTP_SOURCES
+     "${CMAKE_CURRENT_LIST_DIR}/source/*.c"
+     "${CMAKE_CURRENT_LIST_DIR}/codec_packetizers/g711/*.c"
+     "${CMAKE_CURRENT_LIST_DIR}/codec_packetizers/h264/*.c"
+     "${CMAKE_CURRENT_LIST_DIR}/codec_packetizers/opus/*.c"
+     "${CMAKE_CURRENT_LIST_DIR}/codec_packetizers/vp8/*.c" )
 
 # RTP library Public Include directories.
 set( RTP_INCLUDE_PUBLIC_DIRS
-     "${CMAKE_CURRENT_LIST_DIR}/source/include" )
+     "${CMAKE_CURRENT_LIST_DIR}/source/include"
+     "${CMAKE_CURRENT_LIST_DIR}/codec_packetizers/g711/include"
+     "${CMAKE_CURRENT_LIST_DIR}/codec_packetizers/h264/include"
+     "${CMAKE_CURRENT_LIST_DIR}/codec_packetizers/opus/include"
+     "${CMAKE_CURRENT_LIST_DIR}/codec_packetizers/vp8/include" )
 
 # RTP library public include header files.
-set( RTP_INCLUDE_PUBLIC_FILES
-     "lib/include/rtp_api.h"
-     "lib/include/rtp_data_types.h"
-     "lib/include/rtp_endianness.h" )
+file( GLOB RTP_INCLUDE_PUBLIC_FILES
+     "${CMAKE_CURRENT_LIST_DIR}/source/include/*.h"
+     "${CMAKE_CURRENT_LIST_DIR}/codec_packetizers/g711/include/*.h"
+     "${CMAKE_CURRENT_LIST_DIR}/codec_packetizers/h264/include/*.h"
+     "${CMAKE_CURRENT_LIST_DIR}/codec_packetizers/opus/include/*.h"
+     "${CMAKE_CURRENT_LIST_DIR}/codec_packetizers/vp8/include/*.h" )
