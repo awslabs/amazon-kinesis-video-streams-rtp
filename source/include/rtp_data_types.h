@@ -80,7 +80,7 @@ typedef struct RtpHeader
     RtpHeaderExtension_t extension;
 } RtpHeader_t;
 
-typedef struct RtpPacket
+typedef struct RtpDataPacket
 {
     RtpHeader_t header;
     uint8_t * pPayload;
