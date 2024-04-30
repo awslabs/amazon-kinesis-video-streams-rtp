@@ -70,6 +70,7 @@ OpusResult_t OpusDepacketizer_GetFrame( OpusDepacketizerContext_t * pCtx,
 
     if( ( pCtx == NULL ) ||
         ( pFrame == NULL ) ||
+        ( pFrame->pFrameData == NULL ) ||
         ( pFrame->frameDataLength == 0 ) )
     {
         result = OPUS_RESULT_BAD_PARAM;

@@ -104,7 +104,8 @@ VP8Result_t VP8Packetizer_Init( VP8PacketizerContext_t * pCtx,
 
     if( ( pCtx == NULL ) ||
         ( pFrame == NULL ) ||
-        ( pFrame->pFrameData == NULL ) )
+        ( pFrame->pFrameData == NULL ) ||
+        ( pFrame->frameDataLength == 0 ) )
     {
         result = VP8_RESULT_BAD_PARAM;
     }

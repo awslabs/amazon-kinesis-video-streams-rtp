@@ -157,7 +157,9 @@ H264Result_t H264Packetizer_AddFrame( H264PacketizerContext_t * pCtx,
     uint8_t firstStartCode = 1;
 
     if( ( pCtx == NULL ) ||
-        ( pFrame == NULL ) )
+        ( pFrame == NULL ) ||
+        ( pFrame->pFrameData == NULL ) ||
+        ( pFrame->frameDataLength == 0 ) )
     {
         result = H264_RESULT_BAD_PARAM;
     }

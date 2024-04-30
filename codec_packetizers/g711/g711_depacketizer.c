@@ -69,7 +69,9 @@ G711Result_t G711Depacketizer_GetFrame( G711DepacketizerContext_t * pCtx,
     uint8_t * frame = pFrame->pFrameData;
 
     if( ( pCtx == NULL ) ||
-        ( pFrame == NULL ) )
+        ( pFrame == NULL ) ||
+        ( pFrame->pFrameData == NULL ) ||
+        ( pFrame->frameDataLength == 0 ) )
     {
         result = G711_RESULT_BAD_PARAM;
     }

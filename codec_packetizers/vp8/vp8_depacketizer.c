@@ -157,7 +157,9 @@ VP8Result_t VP8Depacketizer_GetFrame( VP8DepacketizerContext_t * pCtx,
     size_t i, payloadDescLength, curFrameDataIndex = 0;
 
     if( ( pCtx == NULL ) ||
-        ( pFrame == NULL ) )
+        ( pFrame == NULL ) ||
+        ( pFrame->pFrameData == NULL ) ||
+        ( pFrame->frameDataLength == 0 ) )
     {
         result = VP8_RESULT_BAD_PARAM;
     }

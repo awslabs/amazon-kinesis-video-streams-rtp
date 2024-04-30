@@ -13,6 +13,7 @@ OpusResult_t OpusPacketizer_Init( OpusPacketizerContext_t * pCtx,
 
     if( ( pCtx == NULL ) ||
         ( pFrame == NULL ) ||
+        ( pFrame->pFrameData == NULL ) ||
         ( pFrame->frameDataLength == 0 ) )
     {
         result = OPUS_RESULT_BAD_PARAM;

@@ -13,6 +13,7 @@ G711Result_t G711Packetizer_Init( G711PacketizerContext_t * pCtx,
 
     if( ( pCtx == NULL ) ||
         ( pFrame == NULL ) ||
+        ( pFrame->pFrameData == NULL ) ||
         ( pFrame->frameDataLength == 0 ) )
     {
         result = G711_RESULT_BAD_PARAM;

@@ -209,7 +209,9 @@ H264Result_t H264Depacketizer_GetFrame( H264DepacketizerContext_t * pCtx,
     uint8_t startCode[] = { 0x00, 0x00, 0x00, 0x01 };
 
     if( ( pCtx == NULL ) ||
-        ( pFrame == NULL ) )
+        ( pFrame == NULL ) ||
+        ( pFrame->pFrameData == NULL ) ||
+        ( pFrame->frameDataLength == 0 ) )
     {
         result = H264_RESULT_BAD_PARAM;
     }
