@@ -205,7 +205,7 @@ H264Result_t H264Depacketizer_GetFrame( H264DepacketizerContext_t * pCtx,
 {
     H264Result_t result = H264_RESULT_OK;
     Nalu_t nalu;
-    size_t currentFrameDataIndex = 0, naluDataIndex = 0;
+    size_t currentFrameDataIndex = 0, naluDataIndex = 0, startCodeIndex = 0;
     uint8_t startCode[] = { 0x00, 0x00, 0x00, 0x01 };
 
     if( ( pCtx == NULL ) ||
@@ -228,7 +228,10 @@ H264Result_t H264Depacketizer_GetFrame( H264DepacketizerContext_t * pCtx,
     {
         if( ( pFrame->frameDataLength - currentFrameDataIndex ) > sizeof( startCode ) )
         {
+            /* NALU data starts after the start code. */
+            startCodeIndex = currentFrameDataIndex;
             naluDataIndex = currentFrameDataIndex + sizeof( startCode );
+
             nalu.pNaluData = &( pFrame->pFrameData[ naluDataIndex ] );
             nalu.naluDataLength = pFrame->frameDataLength - naluDataIndex;
 
@@ -237,9 +240,10 @@ H264Result_t H264Depacketizer_GetFrame( H264DepacketizerContext_t * pCtx,
 
             if( result == H264_RESULT_OK )
             {
-                memcpy( ( void * ) &( pFrame->pFrameData[ currentFrameDataIndex ] ),
+                memcpy( ( void * ) &( pFrame->pFrameData[ startCodeIndex ] ),
                         ( const void * ) &( startCode[ 0 ] ),
                         sizeof( startCode ) );
+
                 currentFrameDataIndex += sizeof( startCode );
                 currentFrameDataIndex += nalu.naluDataLength;
             }
