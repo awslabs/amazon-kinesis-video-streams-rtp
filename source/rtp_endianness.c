@@ -9,30 +9,30 @@
 
 /*-----------------------------------------------------------*/
 
-void WriteUint32Swap( uint8_t * pDst,
-                      uint32_t val )
+void RtpWriteUint32Swap( uint8_t * pDst,
+                         uint32_t val )
 {
     *( ( uint32_t * )( pDst ) ) = SWAP_BYTES_32( val );
 }
 
 /*-----------------------------------------------------------*/
 
-uint32_t ReadUint32Swap( const uint8_t * pSrc )
+uint32_t RtpReadUint32Swap( const uint8_t * pSrc )
 {
     return SWAP_BYTES_32( *( ( uint32_t * )( pSrc ) ) );
 }
 
 /*-----------------------------------------------------------*/
 
-void WriteUint32NoSwap( uint8_t * pDst,
-                        uint32_t val )
+void RtpWriteUint32NoSwap( uint8_t * pDst,
+                           uint32_t val )
 {
     *( ( uint32_t * )( pDst ) ) = ( val );
 }
 
 /*-----------------------------------------------------------*/
 
-uint32_t ReadUint32NoSwap( const uint8_t * pSrc )
+uint32_t RtpReadUint32NoSwap( const uint8_t * pSrc )
 {
     return *( ( uint32_t * )( pSrc ) );
 }
@@ -47,13 +47,13 @@ void Rtp_InitReadWriteFunctions( RtpReadWriteFunctions_t * pReadWriteFunctions )
 
     if( isLittleEndian != 0 )
     {
-        pReadWriteFunctions->writeUint32Fn = WriteUint32Swap;
-        pReadWriteFunctions->readUint32Fn = ReadUint32Swap;
+        pReadWriteFunctions->writeUint32Fn = RtpWriteUint32Swap;
+        pReadWriteFunctions->readUint32Fn = RtpReadUint32Swap;
     }
     else
     {
-        pReadWriteFunctions->writeUint32Fn = WriteUint32NoSwap;
-        pReadWriteFunctions->readUint32Fn = ReadUint32NoSwap;
+        pReadWriteFunctions->writeUint32Fn = RtpWriteUint32NoSwap;
+        pReadWriteFunctions->readUint32Fn = RtpReadUint32NoSwap;
     }
 }
 
