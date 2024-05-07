@@ -80,6 +80,9 @@ typedef struct RtpHeader
     RtpHeaderExtension_t extension;
 } RtpHeader_t;
 
+/* Need to use struct RtpDataPacket here instead of struct RtpPacket as per the
+ * naming convention, to avoid conflict with an existing struct in the current
+ * WebRTC SDK. */
 typedef struct RtpDataPacket
 {
     RtpHeader_t header;
