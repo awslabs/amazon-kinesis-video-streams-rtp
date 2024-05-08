@@ -84,7 +84,8 @@ add_cmock_targets()
 include( ${MODULE_ROOT_DIR}/test/unit-test/cmock/create_test.cmake )
 
 # Include unit-test build configuration
-include( ${UNIT_TEST_DIR}/serialize/ut.cmake )
+include( ${UNIT_TEST_DIR}/packetization/ut.cmake )
+include( ${UNIT_TEST_DIR}/depacketization/ut.cmake )
 
 #  ==================================== Coverage Analysis configuration ========================================
 # Add a target for running coverage on tests.
@@ -92,6 +93,7 @@ add_custom_target( coverage
     COMMAND ${CMAKE_COMMAND} -DCMOCK_DIR=${CMOCK_DIR}
     -P ${MODULE_ROOT_DIR}/test/unit-test/cmock/coverage.cmake
     DEPENDS cmock unity
-    serialize
+    packetization
+    depacketization
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
 )
