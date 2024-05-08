@@ -141,9 +141,8 @@ void test_G711_Packetizer( void )
 /*-----------------------------------------------------------*/
 
 /**
- * @brief Validate G711 packetization happy path.
+ * @brief Validate VP8 packetization happy path.
  */
-
 void test_VP8_Packetizer( void )
 {
     VP8Result_t result;
@@ -216,9 +215,8 @@ void test_VP8_Packetizer( void )
 /*-----------------------------------------------------------*/
 
 /**
- * @brief Validate G711 packetization happy path containing picture ID.
+ * @brief Validate VP8 packetization happy path containing picture ID.
  */
-
 void test_VP8_Packetizer_PictureID( void )
 {
     VP8Result_t result;
@@ -294,9 +292,8 @@ void test_VP8_Packetizer_PictureID( void )
 /*-----------------------------------------------------------*/
 
 /**
- * @brief Validate G711 packetization happy path containing TID.
+ * @brief Validate VP8 packetization happy path containing TID.
  */
-
 void test_VP8_Packetizer_TID( void )
 {
     VP8Result_t result;
@@ -372,7 +369,7 @@ void test_VP8_Packetizer_TID( void )
 /*-----------------------------------------------------------*/
 
 /**
- * @brief Validate G711 packetization happy path containing TL0PICIDX.
+ * @brief Validate VP8 packetization happy path containing TL0PICIDX.
  */
 void test_VP8_Packetizer_TL0PICIDX( void )
 {
@@ -449,7 +446,7 @@ void test_VP8_Packetizer_TL0PICIDX( void )
 /*-----------------------------------------------------------*/
 
 /**
- * @brief Validate G711 packetization happy path with all properties.
+ * @brief Validate VP8 packetization happy path with all properties.
  */
 void test_VP8_Packetizer_AllProperties( void )
 {
@@ -533,7 +530,7 @@ void test_VP8_Packetizer_AllProperties( void )
 /*-----------------------------------------------------------*/
 
 /**
- * @brief Validate G711 packetization happy path.
+ * @brief Validate H264 packetization happy path with adding Nalus.
  */
 void test_H264_Packetizer_AddNalu( void )
 {
@@ -656,7 +653,7 @@ void test_H264_Packetizer_AddNalu( void )
 /*-----------------------------------------------------------*/
 
 /**
- * @brief Validate G711 packetization happy path.
+ * @brief Validate H264 packetization happy path with adding Frame.
  */
 void test_H264_Packetizer_AddFrame( void )
 {
