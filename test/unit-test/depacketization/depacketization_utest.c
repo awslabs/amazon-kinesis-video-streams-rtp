@@ -27,7 +27,9 @@ size_t frameBufferLength = MAX_FRAME_LENGTH;
 
 void setUp( void )
 {
-    memset( &( frameBuffer[ 0 ] ), 0, sizeof( frameBuffer ) );
+    memset( &( frameBuffer[ 0 ] ),
+            0,
+            sizeof( frameBuffer ) );
     frameBufferLength = MAX_FRAME_LENGTH;
 }
 
@@ -62,36 +64,43 @@ void test_Opus_Depacketizer( void )
     result = OpusDepacketizer_Init( &( ctx ),
                                     &( packetsArray[ 0 ] ),
                                     MAX_PACKET_IN_A_FRAME );
-    TEST_ASSERT_EQUAL( result, OPUS_RESULT_OK );
+    TEST_ASSERT_EQUAL( result,
+                       OPUS_RESULT_OK );
 
     pkt.pPacketData = &( packetData1[ 0 ] );
     pkt.packetDataLength = sizeof( packetData1 );
     result = OpusDepacketizer_AddPacket( &( ctx ),
                                          &( pkt ) );
-    TEST_ASSERT_EQUAL( result, OPUS_RESULT_OK );
+    TEST_ASSERT_EQUAL( result,
+                       OPUS_RESULT_OK );
 
     pkt.pPacketData = &( packetData2[ 0 ] );
     pkt.packetDataLength = sizeof( packetData2 );
     result = OpusDepacketizer_AddPacket( &( ctx ),
                                          &( pkt ) );
-    TEST_ASSERT_EQUAL( result, OPUS_RESULT_OK );
+    TEST_ASSERT_EQUAL( result,
+                       OPUS_RESULT_OK );
 
     pkt.pPacketData = &( packetData3[ 0 ] );
     pkt.packetDataLength = sizeof( packetData3 );
     result = OpusDepacketizer_AddPacket( &( ctx ),
                                          &( pkt ) );
-    TEST_ASSERT_EQUAL( result, OPUS_RESULT_OK );
+    TEST_ASSERT_EQUAL( result,
+                       OPUS_RESULT_OK );
 
     frame.pFrameData = &( frameBuffer[ 0 ] );
     frame.frameDataLength = MAX_FRAME_LENGTH;
     result = OpusDepacketizer_GetFrame( &( ctx ),
                                         &( frame ) );
-    TEST_ASSERT_EQUAL( result, OPUS_RESULT_OK );
-    TEST_ASSERT_EQUAL( frame.frameDataLength, sizeof( decodedFrame ) );
+    TEST_ASSERT_EQUAL( result,
+                       OPUS_RESULT_OK );
+    TEST_ASSERT_EQUAL( frame.frameDataLength,
+                       sizeof( decodedFrame ) );
     for( i = 0; i < frame.frameDataLength; i++ )
     {
-        TEST_ASSERT_EQUAL( frame.pFrameData[ i ], decodedFrame[ i ] );
-    }    
+        TEST_ASSERT_EQUAL( frame.pFrameData[ i ],
+                           decodedFrame[ i ] );
+    }
 }
 /*-----------------------------------------------------------*/
 
@@ -119,35 +128,42 @@ void test_G711_Depacketizer( void )
     result = G711Depacketizer_Init( &( ctx ),
                                     &( packetsArray[ 0 ] ),
                                     MAX_PACKET_IN_A_FRAME );
-    TEST_ASSERT_EQUAL( result, G711_RESULT_OK );
+    TEST_ASSERT_EQUAL( result,
+                       G711_RESULT_OK );
 
     pkt.pPacketData = &( packetData1[ 0 ] );
     pkt.packetDataLength = sizeof( packetData1 );
     result = G711Depacketizer_AddPacket( &( ctx ),
                                          &( pkt ) );
-    TEST_ASSERT_EQUAL( result, G711_RESULT_OK );
+    TEST_ASSERT_EQUAL( result,
+                       G711_RESULT_OK );
 
     pkt.pPacketData = &( packetData2[ 0 ] );
     pkt.packetDataLength = sizeof( packetData2 );
     result = G711Depacketizer_AddPacket( &( ctx ),
                                          &( pkt ) );
-    TEST_ASSERT_EQUAL( result, G711_RESULT_OK );
+    TEST_ASSERT_EQUAL( result,
+                       G711_RESULT_OK );
 
     pkt.pPacketData = &( packetData3[ 0 ] );
     pkt.packetDataLength = sizeof( packetData3 );
     result = G711Depacketizer_AddPacket( &( ctx ),
                                          &( pkt ) );
-    TEST_ASSERT_EQUAL( result, G711_RESULT_OK );
+    TEST_ASSERT_EQUAL( result,
+                       G711_RESULT_OK );
 
     frame.pFrameData = &( frameBuffer[ 0 ] );
     frame.frameDataLength = MAX_FRAME_LENGTH;
     result = G711Depacketizer_GetFrame( &( ctx ),
                                         &( frame ) );
-    TEST_ASSERT_EQUAL( result, G711_RESULT_OK );
-    TEST_ASSERT_EQUAL( frame.frameDataLength, sizeof( decodedFrame ) );
+    TEST_ASSERT_EQUAL( result,
+                       G711_RESULT_OK );
+    TEST_ASSERT_EQUAL( frame.frameDataLength,
+                       sizeof( decodedFrame ) );
     for( i = 0; i < frame.frameDataLength; i++ )
     {
-        TEST_ASSERT_EQUAL( frame.pFrameData[ i ], decodedFrame[ i ] );
+        TEST_ASSERT_EQUAL( frame.pFrameData[ i ],
+                           decodedFrame[ i ] );
     }
 }
 
@@ -183,71 +199,87 @@ void test_VP8_Depacketizer_AllProperties( void )
     result = VP8Depacketizer_Init( &( ctx ),
                                    &( packetsArray[ 0 ] ),
                                    VP8_PACKETS_ARR_LEN );
-    TEST_ASSERT_EQUAL( result, VP8_RESULT_OK );
+    TEST_ASSERT_EQUAL( result,
+                       VP8_RESULT_OK );
 
     pkt.pPacketData = &( packetData1[ 0 ] );
     pkt.packetDataLength = sizeof( packetData1 );
     result = VP8Depacketizer_AddPacket( &( ctx ),
                                         &( pkt ) );
-    TEST_ASSERT_EQUAL( result, VP8_RESULT_OK );
+    TEST_ASSERT_EQUAL( result,
+                       VP8_RESULT_OK );
 
     pkt.pPacketData = &( packetData2[ 0 ] );
     pkt.packetDataLength = sizeof( packetData2 );
     result = VP8Depacketizer_AddPacket( &( ctx ),
                                         &( pkt ) );
-    TEST_ASSERT_EQUAL( result, VP8_RESULT_OK );
+    TEST_ASSERT_EQUAL( result,
+                       VP8_RESULT_OK );
 
     pkt.pPacketData = &( packetData3[ 0 ] );
     pkt.packetDataLength = sizeof( packetData3 );
     result = VP8Depacketizer_AddPacket( &( ctx ),
                                         &( pkt ) );
-    TEST_ASSERT_EQUAL( result, VP8_RESULT_OK );
+    TEST_ASSERT_EQUAL( result,
+                       VP8_RESULT_OK );
 
     pkt.pPacketData = &( packetData4[ 0 ] );
     pkt.packetDataLength = sizeof( packetData4 );
     result = VP8Depacketizer_AddPacket( &( ctx ),
                                         &( pkt ) );
-    TEST_ASSERT_EQUAL( result, VP8_RESULT_OK );
+    TEST_ASSERT_EQUAL( result,
+                       VP8_RESULT_OK );
 
     pkt.pPacketData = &( packetData5[ 0 ] );
     pkt.packetDataLength = sizeof( packetData5 );
     result = VP8Depacketizer_AddPacket( &( ctx ),
                                         &( pkt ) );
-    TEST_ASSERT_EQUAL( result, VP8_RESULT_OK );
+    TEST_ASSERT_EQUAL( result,
+                       VP8_RESULT_OK );
 
     pkt.pPacketData = &( packetData6[ 0 ] );
     pkt.packetDataLength = sizeof( packetData6 );
     result = VP8Depacketizer_AddPacket( &( ctx ),
                                         &( pkt ) );
-    TEST_ASSERT_EQUAL( result, VP8_RESULT_OK );
+    TEST_ASSERT_EQUAL( result,
+                       VP8_RESULT_OK );
 
     pkt.pPacketData = &( packetData7[ 0 ] );
     pkt.packetDataLength = sizeof( packetData7 );
     result = VP8Depacketizer_AddPacket( &( ctx ),
                                         &( pkt ) );
-    TEST_ASSERT_EQUAL( result, VP8_RESULT_OK );
+    TEST_ASSERT_EQUAL( result,
+                       VP8_RESULT_OK );
 
     frame.pFrameData = &( frameBuffer[ 0 ] );
     frame.frameDataLength = VP8_FRAME_BUF_LEN;
     result = VP8Depacketizer_GetFrame( &( ctx ),
                                        &( frame ) );
-    TEST_ASSERT_EQUAL( result, VP8_RESULT_OK );
+    TEST_ASSERT_EQUAL( result,
+                       VP8_RESULT_OK );
 
-    TEST_ASSERT_EQUAL( frame.frameDataLength, sizeof( decodedFrameData ) );
+    TEST_ASSERT_EQUAL( frame.frameDataLength,
+                       sizeof( decodedFrameData ) );
     for( i = 0; i < frame.frameDataLength; i++ )
     {
-        TEST_ASSERT_EQUAL( frame.pFrameData[ i ], decodedFrameData[ i ] );
+        TEST_ASSERT_EQUAL( frame.pFrameData[ i ],
+                           decodedFrameData[ i ] );
     }
-    TEST_ASSERT_EQUAL( frame.pictureId, 0x7ACD );
-    TEST_ASSERT_EQUAL( frame.tl0PicIndex, 0xAB );
-    TEST_ASSERT_EQUAL( frame.tid, 5 );
-    TEST_ASSERT_EQUAL( frame.keyIndex, 10 );
-    TEST_ASSERT_EQUAL( frame.frameProperties, ( VP8_FRAME_PROP_NON_REF_FRAME |
-                                       VP8_FRAME_PROP_PICTURE_ID_PRESENT |
-                                       VP8_FRAME_PROP_TL0PICIDX_PRESENT |
-                                       VP8_FRAME_PROP_TID_PRESENT |
-                                       VP8_FRAME_PROP_KEYIDX_PRESENT |
-                                       VP8_FRAME_PROP_DEPENDS_ON_BASE_ONLY ) );
+    TEST_ASSERT_EQUAL( frame.pictureId,
+                       0x7ACD );
+    TEST_ASSERT_EQUAL( frame.tl0PicIndex,
+                       0xAB );
+    TEST_ASSERT_EQUAL( frame.tid,
+                       5 );
+    TEST_ASSERT_EQUAL( frame.keyIndex,
+                       10 );
+    TEST_ASSERT_EQUAL( frame.frameProperties,
+                       ( VP8_FRAME_PROP_NON_REF_FRAME |
+                         VP8_FRAME_PROP_PICTURE_ID_PRESENT |
+                         VP8_FRAME_PROP_TL0PICIDX_PRESENT |
+                         VP8_FRAME_PROP_TID_PRESENT |
+                         VP8_FRAME_PROP_KEYIDX_PRESENT |
+                         VP8_FRAME_PROP_DEPENDS_ON_BASE_ONLY ) );
 }
 /*-----------------------------------------------------------*/
 
@@ -278,46 +310,56 @@ void test_VP8_Depacketizer_PictureID( void )
     result = VP8Depacketizer_Init( &( ctx ),
                                    &( packetsArray[ 0 ] ),
                                    VP8_PACKETS_ARR_LEN );
-    TEST_ASSERT_EQUAL( result, VP8_RESULT_OK );
+    TEST_ASSERT_EQUAL( result,
+                       VP8_RESULT_OK );
 
     pkt.pPacketData = &( packetData1[ 0 ] );
     pkt.packetDataLength = sizeof( packetData1 );
     result = VP8Depacketizer_AddPacket( &( ctx ),
                                         &( pkt ) );
-    TEST_ASSERT_EQUAL( result, VP8_RESULT_OK );
+    TEST_ASSERT_EQUAL( result,
+                       VP8_RESULT_OK );
 
     pkt.pPacketData = &( packetData2[ 0 ] );
     pkt.packetDataLength = sizeof( packetData2 );
     result = VP8Depacketizer_AddPacket( &( ctx ),
                                         &( pkt ) );
-    TEST_ASSERT_EQUAL( result, VP8_RESULT_OK );
+    TEST_ASSERT_EQUAL( result,
+                       VP8_RESULT_OK );
 
     pkt.pPacketData = &( packetData3[ 0 ] );
     pkt.packetDataLength = sizeof( packetData3 );
     result = VP8Depacketizer_AddPacket( &( ctx ),
                                         &( pkt ) );
-    TEST_ASSERT_EQUAL( result, VP8_RESULT_OK );
+    TEST_ASSERT_EQUAL( result,
+                       VP8_RESULT_OK );
 
     pkt.pPacketData = &( packetData4[ 0 ] );
     pkt.packetDataLength = sizeof( packetData4 );
     result = VP8Depacketizer_AddPacket( &( ctx ),
                                         &( pkt ) );
-    TEST_ASSERT_EQUAL( result, VP8_RESULT_OK );
+    TEST_ASSERT_EQUAL( result,
+                       VP8_RESULT_OK );
 
     frame.pFrameData = &( frameBuffer[ 0 ] );
     frame.frameDataLength = VP8_FRAME_BUF_LEN;
     result = VP8Depacketizer_GetFrame( &( ctx ),
                                        &( frame ) );
-    TEST_ASSERT_EQUAL( result, VP8_RESULT_OK );
+    TEST_ASSERT_EQUAL( result,
+                       VP8_RESULT_OK );
 
-    TEST_ASSERT_EQUAL( frame.frameDataLength, sizeof( decodedFrameData ) );
+    TEST_ASSERT_EQUAL( frame.frameDataLength,
+                       sizeof( decodedFrameData ) );
     for( i = 0; i < frame.frameDataLength; i++ )
     {
-        TEST_ASSERT_EQUAL( frame.pFrameData[ i ], decodedFrameData[ i ] );
+        TEST_ASSERT_EQUAL( frame.pFrameData[ i ],
+                           decodedFrameData[ i ] );
     }
-    TEST_ASSERT_EQUAL( frame.tl0PicIndex, 0xAB );
-    TEST_ASSERT_EQUAL( frame.frameProperties, ( VP8_FRAME_PROP_NON_REF_FRAME |
-                                       VP8_FRAME_PROP_TL0PICIDX_PRESENT ) );
+    TEST_ASSERT_EQUAL( frame.tl0PicIndex,
+                       0xAB );
+    TEST_ASSERT_EQUAL( frame.frameProperties,
+                       ( VP8_FRAME_PROP_NON_REF_FRAME |
+                         VP8_FRAME_PROP_TL0PICIDX_PRESENT ) );
 }
 /*-----------------------------------------------------------*/
 
@@ -344,55 +386,64 @@ void test_H264_Depacketizer_GetNalu( void )
                                     &( packetsArray[ 0 ] ),
                                     MAX_PACKETS_IN_A_FRAME );
 
-    TEST_ASSERT_EQUAL( result, H264_RESULT_OK );
+    TEST_ASSERT_EQUAL( result,
+                       H264_RESULT_OK );
 
     pkt.pPacketData = &( packetData1[ 0 ] );
     pkt.packetDataLength = sizeof( packetData1 );
     result = H264Depacketizer_AddPacket( &( ctx ),
                                          &( pkt ) );
-    TEST_ASSERT_EQUAL( result, H264_RESULT_OK );
+    TEST_ASSERT_EQUAL( result,
+                       H264_RESULT_OK );
 
     pkt.pPacketData = &( packetData2[ 0 ] );
     pkt.packetDataLength = sizeof( packetData2 );
     result = H264Depacketizer_AddPacket( &( ctx ),
                                          &( pkt ) );
-    TEST_ASSERT_EQUAL( result, H264_RESULT_OK );
+    TEST_ASSERT_EQUAL( result,
+                       H264_RESULT_OK );
 
     pkt.pPacketData = &( packetData3[ 0 ] );
     pkt.packetDataLength = sizeof( packetData3 );
     result = H264Depacketizer_AddPacket( &( ctx ),
                                          &( pkt ) );
-    TEST_ASSERT_EQUAL( result, H264_RESULT_OK );
+    TEST_ASSERT_EQUAL( result,
+                       H264_RESULT_OK );
 
     pkt.pPacketData = &( packetData4[ 0 ] );
     pkt.packetDataLength = sizeof( packetData4 );
     result = H264Depacketizer_AddPacket( &( ctx ),
                                          &( pkt ) );
-    TEST_ASSERT_EQUAL( result, H264_RESULT_OK );
+    TEST_ASSERT_EQUAL( result,
+                       H264_RESULT_OK );
 
     pkt.pPacketData = &( packetData5[ 0 ] );
     pkt.packetDataLength = sizeof( packetData5 );
     result = H264Depacketizer_AddPacket( &( ctx ),
                                          &( pkt ) );
-    TEST_ASSERT_EQUAL( result, H264_RESULT_OK );
+    TEST_ASSERT_EQUAL( result,
+                       H264_RESULT_OK );
 
     pkt.pPacketData = &( packetData6[ 0 ] );
     pkt.packetDataLength = sizeof( packetData6 );
     result = H264Depacketizer_AddPacket( &( ctx ),
                                          &( pkt ) );
-    TEST_ASSERT_EQUAL( result, H264_RESULT_OK );
+    TEST_ASSERT_EQUAL( result,
+                       H264_RESULT_OK );
 
     pkt.pPacketData = &( packetData7[ 0 ] );
     pkt.packetDataLength = sizeof( packetData7 );
     result = H264Depacketizer_AddPacket( &( ctx ),
                                          &( pkt ) );
-    TEST_ASSERT_EQUAL( result, H264_RESULT_OK );
+    TEST_ASSERT_EQUAL( result,
+                       H264_RESULT_OK );
 
     nalu.pNaluData = &( naluBuffer[ 0 ] );
     nalu.naluDataLength = MAX_NALU_LENGTH;
     result = H264Depacketizer_GetNalu( &( ctx ),
                                        &( nalu ) );
-    TEST_ASSERT_EQUAL( result, H264_RESULT_OK );
+    TEST_ASSERT_EQUAL( result,
+                       H264_RESULT_OK );
 
     while( result != H264_RESULT_NO_MORE_NALUS )
     {
@@ -402,7 +453,8 @@ void test_H264_Depacketizer_GetNalu( void )
                                            &( nalu ) );
 
     }
-    TEST_ASSERT_EQUAL( result, H264_RESULT_NO_MORE_NALUS );
+    TEST_ASSERT_EQUAL( result,
+                       H264_RESULT_NO_MORE_NALUS );
 }
 
 /*-----------------------------------------------------------*/
@@ -428,62 +480,71 @@ void test_H264_Depacketizer_GetFrame( void )
     result = H264Depacketizer_Init( &( ctx ),
                                     &( packetsArray[ 0 ] ),
                                     MAX_PACKETS_IN_A_FRAME );
-    TEST_ASSERT_EQUAL( result, H264_RESULT_OK );
+    TEST_ASSERT_EQUAL( result,
+                       H264_RESULT_OK );
 
     pkt.pPacketData = &( packetData1[ 0 ] );
     pkt.packetDataLength = sizeof( packetData1 );
     totalSize += pkt.packetDataLength;
     result = H264Depacketizer_AddPacket( &( ctx ),
                                          &( pkt ) );
-    TEST_ASSERT_EQUAL( result, H264_RESULT_OK );
+    TEST_ASSERT_EQUAL( result,
+                       H264_RESULT_OK );
 
     pkt.pPacketData = &( packetData2[ 0 ] );
     pkt.packetDataLength = sizeof( packetData2 );
     totalSize += pkt.packetDataLength;
     result = H264Depacketizer_AddPacket( &( ctx ),
                                          &( pkt ) );
-    TEST_ASSERT_EQUAL( result, H264_RESULT_OK );
+    TEST_ASSERT_EQUAL( result,
+                       H264_RESULT_OK );
 
     pkt.pPacketData = &( packetData3[ 0 ] );
     pkt.packetDataLength = sizeof( packetData3 );
     totalSize += pkt.packetDataLength;
     result = H264Depacketizer_AddPacket( &( ctx ),
                                          &( pkt ) );
-    TEST_ASSERT_EQUAL( result, H264_RESULT_OK );
+    TEST_ASSERT_EQUAL( result,
+                       H264_RESULT_OK );
 
     pkt.pPacketData = &( packetData4[ 0 ] );
     pkt.packetDataLength = sizeof( packetData4 );
     totalSize += pkt.packetDataLength;
     result = H264Depacketizer_AddPacket( &( ctx ),
                                          &( pkt ) );
-    TEST_ASSERT_EQUAL( result, H264_RESULT_OK );
+    TEST_ASSERT_EQUAL( result,
+                       H264_RESULT_OK );
 
     pkt.pPacketData = &( packetData5[ 0 ] );
     pkt.packetDataLength = sizeof( packetData5 );
     totalSize += pkt.packetDataLength;
     result = H264Depacketizer_AddPacket( &( ctx ),
                                          &( pkt ) );
-    TEST_ASSERT_EQUAL( result, H264_RESULT_OK );
+    TEST_ASSERT_EQUAL( result,
+                       H264_RESULT_OK );
 
     pkt.pPacketData = &( packetData6[ 0 ] );
     pkt.packetDataLength = sizeof( packetData6 );
     totalSize += pkt.packetDataLength;
     result = H264Depacketizer_AddPacket( &( ctx ),
                                          &( pkt ) );
-    TEST_ASSERT_EQUAL( result, H264_RESULT_OK );
+    TEST_ASSERT_EQUAL( result,
+                       H264_RESULT_OK );
 
     pkt.pPacketData = &( packetData7[ 0 ] );
     pkt.packetDataLength = sizeof( packetData7 );
     totalSize += pkt.packetDataLength;
     result = H264Depacketizer_AddPacket( &( ctx ),
                                          &( pkt ) );
-    TEST_ASSERT_EQUAL( result, H264_RESULT_OK );
+    TEST_ASSERT_EQUAL( result,
+                       H264_RESULT_OK );
 
     frame.pFrameData = &( frameBuffer[ 0 ] );
     frame.frameDataLength = MAX_FRAME_LENGTH;
     result = H264Depacketizer_GetFrame( &( ctx ),
                                         &( frame ) );
-    TEST_ASSERT_EQUAL( result, H264_RESULT_OK );
+    TEST_ASSERT_EQUAL( result,
+                       H264_RESULT_OK );
 }
 /*-----------------------------------------------------------*/
 
@@ -504,22 +565,28 @@ void test_H264_Depacketizer_GetProperties( void )
     result = H264Depacketizer_GetPacketProperties( pkt.pPacketData,
                                                    pkt.packetDataLength,
                                                    &( packetProperties ) );
-    TEST_ASSERT_EQUAL( result, H264_RESULT_OK );
-    TEST_ASSERT_EQUAL( packetProperties, H264_PACKET_PROPERTY_START_PACKET );
+    TEST_ASSERT_EQUAL( result,
+                       H264_RESULT_OK );
+    TEST_ASSERT_EQUAL( packetProperties,
+                       H264_PACKET_PROPERTY_START_PACKET );
 
     pkt.pPacketData = &( fuAStartPacket[ 0 ] );
     pkt.packetDataLength = sizeof( fuAStartPacket );
     result = H264Depacketizer_GetPacketProperties( pkt.pPacketData,
                                                    pkt.packetDataLength,
                                                    &( packetProperties ) );
-    TEST_ASSERT_EQUAL( result, H264_RESULT_OK );
-    TEST_ASSERT_EQUAL( packetProperties, H264_PACKET_PROPERTY_START_PACKET );
+    TEST_ASSERT_EQUAL( result,
+                       H264_RESULT_OK );
+    TEST_ASSERT_EQUAL( packetProperties,
+                       H264_PACKET_PROPERTY_START_PACKET );
 
     pkt.pPacketData = &( fuAEndPacket[ 0 ] );
     pkt.packetDataLength = sizeof( fuAEndPacket );
     result = H264Depacketizer_GetPacketProperties( pkt.pPacketData,
                                                    pkt.packetDataLength,
                                                    &( packetProperties ) );
-    TEST_ASSERT_EQUAL( result, H264_RESULT_OK );
-    TEST_ASSERT_EQUAL( packetProperties, H264_PACKET_PROPERTY_END_PACKET );
+    TEST_ASSERT_EQUAL( result,
+                       H264_RESULT_OK );
+    TEST_ASSERT_EQUAL( packetProperties,
+                       H264_PACKET_PROPERTY_END_PACKET );
 }

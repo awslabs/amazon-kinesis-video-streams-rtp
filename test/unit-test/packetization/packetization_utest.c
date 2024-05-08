@@ -14,7 +14,6 @@
 
 /* ===========================  EXTERN VARIABLES  =========================== */
 
-#define RTP_TEST_BUFFER_SIZE ( 10000 )
 #define MAX_NALUS_IN_A_FRAME 512
 #define MAX_PACKET_LENGTH   1200
 
@@ -22,12 +21,14 @@
 #define G711_PACKET_LENGTH  10
 #define OPUS_PACKET_LENGTH  10
 
-uint8_t packetizationBuffer[ RTP_TEST_BUFFER_SIZE] ;
+uint8_t packetizationBuffer[ VP8_PACKET_LENGTH];
 size_t packetizationBufferLength = VP8_PACKET_LENGTH;
 
 void setUp( void )
 {
-    memset( &( packetizationBuffer[ 0 ] ), 0, sizeof( packetizationBuffer ) );
+    memset( &( packetizationBuffer[ 0 ] ),
+            0,
+            sizeof( packetizationBuffer ) );
     packetizationBufferLength = VP8_PACKET_LENGTH;
 }
 
@@ -59,7 +60,8 @@ void test_Opus_Packetizer( void )
 
     result = OpusPacketizer_Init( &( ctx ),
                                   &( frame ) );
-    TEST_ASSERT_EQUAL( result, OPUS_RESULT_OK );
+    TEST_ASSERT_EQUAL( result,
+                       OPUS_RESULT_OK );
 
     pkt.pPacketData = &( packetizationBuffer[ 0 ] );
     pkt.packetDataLength = OPUS_PACKET_LENGTH;
@@ -68,10 +70,11 @@ void test_Opus_Packetizer( void )
 
     while( result != OPUS_RESULT_NO_MORE_PACKETS )
     {
-        TEST_ASSERT_TRUE(pkt.packetDataLength <= OPUS_PACKET_LENGTH);
+        TEST_ASSERT_TRUE( pkt.packetDataLength <= OPUS_PACKET_LENGTH );
         for( i = 0; i < pkt.packetDataLength; i++ )
         {
-            TEST_ASSERT_EQUAL( pkt.pPacketData[ i ], frameData[ curFrameDataIndex ] );
+            TEST_ASSERT_EQUAL( pkt.pPacketData[ i ],
+                               frameData[ curFrameDataIndex ] );
             curFrameDataIndex++;
         }
 
@@ -81,7 +84,8 @@ void test_Opus_Packetizer( void )
                                            &( pkt ) );
     }
 
-    TEST_ASSERT_EQUAL( curFrameDataIndex, sizeof( frameData ) );
+    TEST_ASSERT_EQUAL( curFrameDataIndex,
+                       sizeof( frameData ) );
 }
 /*-----------------------------------------------------------*/
 
@@ -106,7 +110,8 @@ void test_G711_Packetizer( void )
 
     result = G711Packetizer_Init( &( ctx ),
                                   &( frame ) );
-    TEST_ASSERT_EQUAL( result, G711_RESULT_OK );
+    TEST_ASSERT_EQUAL( result,
+                       G711_RESULT_OK );
 
     pkt.pPacketData = &( packetizationBuffer[ 0 ] );
     pkt.packetDataLength = G711_PACKET_LENGTH;
@@ -118,7 +123,8 @@ void test_G711_Packetizer( void )
         TEST_ASSERT_TRUE( pkt.packetDataLength <= G711_PACKET_LENGTH );
         for( i = 0; i < pkt.packetDataLength; i++ )
         {
-            TEST_ASSERT_EQUAL( pkt.pPacketData[ i ], frameData[ curFrameDataIndex ] );
+            TEST_ASSERT_EQUAL( pkt.pPacketData[ i ],
+                               frameData[ curFrameDataIndex ] );
             curFrameDataIndex++;
         }
 
@@ -128,7 +134,8 @@ void test_G711_Packetizer( void )
                                            &( pkt ) );
     }
 
-    TEST_ASSERT_EQUAL( curFrameDataIndex, sizeof( frameData ) );
+    TEST_ASSERT_EQUAL( curFrameDataIndex,
+                       sizeof( frameData ) );
 }
 
 /*-----------------------------------------------------------*/
@@ -161,7 +168,8 @@ void test_VP8_Packetizer( void )
 
     result = VP8Packetizer_Init( &( ctx ),
                                  &( frame ) );
-    TEST_ASSERT_EQUAL( result, VP8_RESULT_OK );
+    TEST_ASSERT_EQUAL( result,
+                       VP8_RESULT_OK );
 
     pkt.pPacketData = &( packetizationBuffer[ 0 ] );
     pkt.packetDataLength = VP8_PACKET_LENGTH;
@@ -177,16 +185,19 @@ void test_VP8_Packetizer( void )
             {
                 if( frameDataIndex == 0 )
                 {
-                    TEST_ASSERT_EQUAL( pkt.pPacketData[ i ], payloadDescFirstPkt[ i ] );
+                    TEST_ASSERT_EQUAL( pkt.pPacketData[ i ],
+                                       payloadDescFirstPkt[ i ] );
                 }
                 else
                 {
-                    TEST_ASSERT_EQUAL( pkt.pPacketData[ i ], payloadDesc[ i ] );
+                    TEST_ASSERT_EQUAL( pkt.pPacketData[ i ],
+                                       payloadDesc[ i ] );
                 }
             }
             else
             {
-                TEST_ASSERT_EQUAL( pkt.pPacketData[ i ], frameData[ frameDataIndex ] );
+                TEST_ASSERT_EQUAL( pkt.pPacketData[ i ],
+                                   frameData[ frameDataIndex ] );
                 frameDataIndex++;
             }
         }
@@ -199,7 +210,8 @@ void test_VP8_Packetizer( void )
 
     }
 
-    TEST_ASSERT_EQUAL( frameDataIndex, sizeof( frameData ) );
+    TEST_ASSERT_EQUAL( frameDataIndex,
+                       sizeof( frameData ) );
 }
 /*-----------------------------------------------------------*/
 
@@ -234,7 +246,8 @@ void test_VP8_Packetizer_PictureID( void )
 
     result = VP8Packetizer_Init( &( ctx ),
                                  &( frame ) );
-    TEST_ASSERT_EQUAL( result, VP8_RESULT_OK );
+    TEST_ASSERT_EQUAL( result,
+                       VP8_RESULT_OK );
 
     pkt.pPacketData = &( packetizationBuffer[ 0 ] );
     pkt.packetDataLength = VP8_PACKET_LENGTH;
@@ -250,16 +263,19 @@ void test_VP8_Packetizer_PictureID( void )
             {
                 if( frameDataIndex == 0 )
                 {
-                    TEST_ASSERT_EQUAL( pkt.pPacketData[ i ], payloadDescFirstPkt[ i ] );
+                    TEST_ASSERT_EQUAL( pkt.pPacketData[ i ],
+                                       payloadDescFirstPkt[ i ] );
                 }
                 else
                 {
-                    TEST_ASSERT_EQUAL( pkt.pPacketData[ i ], payloadDesc[ i ] );
+                    TEST_ASSERT_EQUAL( pkt.pPacketData[ i ],
+                                       payloadDesc[ i ] );
                 }
             }
             else
             {
-                TEST_ASSERT_EQUAL( pkt.pPacketData[ i ], frameData[ frameDataIndex ] );
+                TEST_ASSERT_EQUAL( pkt.pPacketData[ i ],
+                                   frameData[ frameDataIndex ] );
                 frameDataIndex++;
             }
         }
@@ -272,7 +288,8 @@ void test_VP8_Packetizer_PictureID( void )
 
     }
 
-    TEST_ASSERT_EQUAL( frameDataIndex, sizeof( frameData ) );
+    TEST_ASSERT_EQUAL( frameDataIndex,
+                       sizeof( frameData ) );
 }
 /*-----------------------------------------------------------*/
 
@@ -307,7 +324,8 @@ void test_VP8_Packetizer_TID( void )
 
     result = VP8Packetizer_Init( &( ctx ),
                                  &( frame ) );
-    TEST_ASSERT_EQUAL( result, VP8_RESULT_OK );
+    TEST_ASSERT_EQUAL( result,
+                       VP8_RESULT_OK );
 
     pkt.pPacketData = &( packetizationBuffer[ 0 ] );
     pkt.packetDataLength = VP8_PACKET_LENGTH;
@@ -323,16 +341,19 @@ void test_VP8_Packetizer_TID( void )
             {
                 if( frameDataIndex == 0 )
                 {
-                    TEST_ASSERT_EQUAL( pkt.pPacketData[ i ], payloadDescFirstPkt[ i ] );
+                    TEST_ASSERT_EQUAL( pkt.pPacketData[ i ],
+                                       payloadDescFirstPkt[ i ] );
                 }
                 else
                 {
-                    TEST_ASSERT_EQUAL( pkt.pPacketData[ i ], payloadDesc[ i ] );
+                    TEST_ASSERT_EQUAL( pkt.pPacketData[ i ],
+                                       payloadDesc[ i ] );
                 }
             }
             else
             {
-                TEST_ASSERT_EQUAL( pkt.pPacketData[ i ], frameData[ frameDataIndex ] );
+                TEST_ASSERT_EQUAL( pkt.pPacketData[ i ],
+                                   frameData[ frameDataIndex ] );
                 frameDataIndex++;
             }
         }
@@ -345,7 +366,8 @@ void test_VP8_Packetizer_TID( void )
 
     }
 
-    TEST_ASSERT_EQUAL( frameDataIndex, sizeof( frameData ) );    
+    TEST_ASSERT_EQUAL( frameDataIndex,
+                       sizeof( frameData ) );
 }
 /*-----------------------------------------------------------*/
 
@@ -379,7 +401,8 @@ void test_VP8_Packetizer_TL0PICIDX( void )
 
     result = VP8Packetizer_Init( &( ctx ),
                                  &( frame ) );
-    TEST_ASSERT_EQUAL( result, VP8_RESULT_OK );
+    TEST_ASSERT_EQUAL( result,
+                       VP8_RESULT_OK );
 
     pkt.pPacketData = &( packetizationBuffer[ 0 ] );
     pkt.packetDataLength = VP8_PACKET_LENGTH;
@@ -395,16 +418,19 @@ void test_VP8_Packetizer_TL0PICIDX( void )
             {
                 if( frameDataIndex == 0 )
                 {
-                    TEST_ASSERT_EQUAL( pkt.pPacketData[ i ], payloadDescFirstPkt[ i ] );
+                    TEST_ASSERT_EQUAL( pkt.pPacketData[ i ],
+                                       payloadDescFirstPkt[ i ] );
                 }
                 else
                 {
-                    TEST_ASSERT_EQUAL( pkt.pPacketData[ i ], payloadDesc[ i ] );
+                    TEST_ASSERT_EQUAL( pkt.pPacketData[ i ],
+                                       payloadDesc[ i ] );
                 }
             }
             else
             {
-                TEST_ASSERT_EQUAL( pkt.pPacketData[ i ], frameData[ frameDataIndex ] );
+                TEST_ASSERT_EQUAL( pkt.pPacketData[ i ],
+                                   frameData[ frameDataIndex ] );
                 frameDataIndex++;
             }
         }
@@ -417,7 +443,8 @@ void test_VP8_Packetizer_TL0PICIDX( void )
 
     }
 
-    TEST_ASSERT_EQUAL( frameDataIndex, sizeof( frameData ) );
+    TEST_ASSERT_EQUAL( frameDataIndex,
+                       sizeof( frameData ) );
 }
 /*-----------------------------------------------------------*/
 
@@ -458,7 +485,8 @@ void test_VP8_Packetizer_AllProperties( void )
 
     result = VP8Packetizer_Init( &( ctx ),
                                  &( frame ) );
-    TEST_ASSERT_EQUAL( result, VP8_RESULT_OK );
+    TEST_ASSERT_EQUAL( result,
+                       VP8_RESULT_OK );
 
     pkt.pPacketData = &( packetizationBuffer[ 0 ] );
     pkt.packetDataLength = VP8_PACKET_LENGTH;
@@ -474,16 +502,19 @@ void test_VP8_Packetizer_AllProperties( void )
             {
                 if( frameDataIndex == 0 )
                 {
-                    TEST_ASSERT_EQUAL( pkt.pPacketData[ i ], payloadDescFirstPkt[ i ] );
+                    TEST_ASSERT_EQUAL( pkt.pPacketData[ i ],
+                                       payloadDescFirstPkt[ i ] );
                 }
                 else
                 {
-                    TEST_ASSERT_EQUAL( pkt.pPacketData[ i ], payloadDesc[ i ] );
+                    TEST_ASSERT_EQUAL( pkt.pPacketData[ i ],
+                                       payloadDesc[ i ] );
                 }
             }
             else
             {
-                TEST_ASSERT_EQUAL( pkt.pPacketData[ i ], frameData[ frameDataIndex ] );
+                TEST_ASSERT_EQUAL( pkt.pPacketData[ i ],
+                                   frameData[ frameDataIndex ] );
                 frameDataIndex++;
             }
         }
@@ -496,7 +527,8 @@ void test_VP8_Packetizer_AllProperties( void )
 
     }
 
-    TEST_ASSERT_EQUAL( frameDataIndex, sizeof( frameData ) );
+    TEST_ASSERT_EQUAL( frameDataIndex,
+                       sizeof( frameData ) );
 }
 /*-----------------------------------------------------------*/
 
@@ -529,7 +561,8 @@ void test_H264_Packetizer_AddNalu( void )
     result = H264Packetizer_Init( &( ctx ),
                                   &( nalusArray[ 0 ] ),
                                   MAX_NALUS_IN_A_FRAME );
-    TEST_ASSERT_EQUAL( result, H264_RESULT_OK );
+    TEST_ASSERT_EQUAL( result,
+                       H264_RESULT_OK );
 
     while( curIndex < frameLength )
     {
@@ -553,7 +586,8 @@ void test_H264_Packetizer_AddNalu( void )
                     nalu.naluDataLength = curIndex - naluStartIndex;
                     result = H264Packetizer_AddNalu( &( ctx ),
                                                      &( nalu ) );
-                    TEST_ASSERT_EQUAL( result, H264_RESULT_OK );
+                    TEST_ASSERT_EQUAL( result,
+                                       H264_RESULT_OK );
                 }
 
                 naluStartIndex = curIndex + sizeof( startCode1 );
@@ -609,12 +643,13 @@ void test_H264_Packetizer_AddNalu( void )
     while( result != H264_RESULT_NO_MORE_PACKETS )
     {
         packetNumber++;
-        TEST_ASSERT_EQUAL( expectedPacketLength[i++], pkt.packetDataLength );
+        TEST_ASSERT_EQUAL( expectedPacketLength[i++],
+                           pkt.packetDataLength );
 
         pkt.pPacketData = &( pktBuffer[ 0 ] );
         pkt.packetDataLength = mtuSize;
         result = H264Packetizer_GetPacket( &( ctx ),
-                                           &( pkt ) );                            
+                                           &( pkt ) );
     }
 }
 
@@ -645,13 +680,15 @@ void test_H264_Packetizer_AddFrame( void )
     result = H264Packetizer_Init( &( ctx ),
                                   &( nalusArray[ 0 ] ),
                                   MAX_NALUS_IN_A_FRAME );
-    TEST_ASSERT_EQUAL( result, H264_RESULT_OK );
+    TEST_ASSERT_EQUAL( result,
+                       H264_RESULT_OK );
 
     frame.pFrameData = pFrame;
     frame.frameDataLength = frameLength;
     result = H264Packetizer_AddFrame( &( ctx ),
                                       &( frame ) );
-    TEST_ASSERT_EQUAL( result, H264_RESULT_OK );
+    TEST_ASSERT_EQUAL( result,
+                       H264_RESULT_OK );
 
     pkt.pPacketData = &( pktBuffer[ 0 ] );
     pkt.packetDataLength = mtuSize;
@@ -661,7 +698,8 @@ void test_H264_Packetizer_AddFrame( void )
     while( result != H264_RESULT_NO_MORE_PACKETS )
     {
         packetNumber++;
-        TEST_ASSERT_EQUAL( expectedPacketLength[i++], pkt.packetDataLength );
+        TEST_ASSERT_EQUAL( expectedPacketLength[i++],
+                           pkt.packetDataLength );
 
         pkt.pPacketData = &( pktBuffer[ 0 ] );
         pkt.packetDataLength = mtuSize;
