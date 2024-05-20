@@ -9,43 +9,43 @@ message( STATUS "${project_name}" )
 
 # =====================  Create your mock here  (edit)  ========================
 
-# list the files to mock here
+# List the files to mock here.
 list(APPEND mock_list
             "${MODULE_ROOT_DIR}/codec_packetizers/g711/include/g711_data_types.h"
             "${MODULE_ROOT_DIR}/codec_packetizers/h264/include/h264_data_types.h"
             "${MODULE_ROOT_DIR}/codec_packetizers/opus/include/opus_data_types.h"
             "${MODULE_ROOT_DIR}/codec_packetizers/vp8/include/vp8_data_types.h"
         )
-# list the directories your mocks need
+# List the directories your mocks need.
 list(APPEND mock_include_list
             ${RTP_INCLUDE_PUBLIC_DIRS}
             ${MODULE_ROOT_DIR}/test/unit-test
         )
 
-#list the definitions of your mocks to control what to be included
+# List the definitions of your mocks to control what to be included.
 list(APPEND mock_define_list
             ""
        )
 
 # ================= Create the library under test here (edit) ==================
 
-# list the files you would like to test here
+# List the files you would like to test here.
 list(APPEND real_source_files
             ${MODULE_ROOT_DIR}/codec_packetizers/g711/g711_packetizer.c
             ${MODULE_ROOT_DIR}/codec_packetizers/h264/h264_packetizer.c
             ${MODULE_ROOT_DIR}/codec_packetizers/opus/opus_packetizer.c
             ${MODULE_ROOT_DIR}/codec_packetizers/vp8/vp8_packetizer.c
-	)
-# list the directories the module under test includes
+        )
+# List the directories the module under test includes.
 list(APPEND real_include_directories
             ${RTP_INCLUDE_PUBLIC_DIRS}
             ${MODULE_ROOT_DIR}/test/unit-test
             ${CMOCK_DIR}/vendor/unity/src
-	)
+        )
 
 # =====================  Create UnitTest Code here (edit)  =====================
 
-# list the directories your test needs to include
+# List the directories your test needs to include.
 list(APPEND test_include_directories
             ${CMOCK_DIR}/vendor/unity/src
             ${RTP_INCLUDE_PUBLIC_DIRS}

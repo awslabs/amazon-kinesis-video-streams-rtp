@@ -1,10 +1,10 @@
-/* Include Unity header */
+/* Unity includes. */
 #include "unity.h"
+#include "catch_assert.h"
 
-/* Include standard libraries */
+/* Standard includes. */
 #include <string.h>
 #include <stdint.h>
-#include "catch_assert.h"
 
 /* API includes. */
 #include "h264_depacketizer.h"
@@ -14,28 +14,25 @@
 
 /* ===========================  EXTERN VARIABLES  =========================== */
 
-#define MAX_PACKETS_IN_A_FRAME 512
-#define MAX_NALU_LENGTH   5 * 1024
-#define MAX_FRAME_LENGTH  10 * 1024
-#define MAX_PACKET_IN_A_FRAME 512
+#define MAX_PACKETS_IN_A_FRAME  512
+#define MAX_NALU_LENGTH         5 * 1024
+#define MAX_FRAME_LENGTH        10 * 1024
+#define MAX_PACKET_IN_A_FRAME   512
 
-#define VP8_PACKETS_ARR_LEN 10
-#define VP8_FRAME_BUF_LEN 32
+#define VP8_PACKETS_ARR_LEN     10
+#define VP8_FRAME_BUF_LEN       32
 
 uint8_t frameBuffer[ MAX_FRAME_LENGTH ];
-size_t frameBufferLength = MAX_FRAME_LENGTH;
 
 void setUp( void )
 {
     memset( &( frameBuffer[ 0 ] ),
             0,
             sizeof( frameBuffer ) );
-    frameBufferLength = MAX_FRAME_LENGTH;
 }
 
 void tearDown( void )
 {
-    // clean stuff up here
 }
 
 /* ==============================  Test Cases  ============================== */
@@ -49,11 +46,10 @@ void test_Opus_Depacketizer( void )
     OpusDepacketizerContext_t ctx;
     OpusPacket_t packetsArray[ MAX_PACKET_IN_A_FRAME ], pkt;
     OpusFrame_t frame;
-    size_t i;
 
-    uint8_t packetData1[] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x10, 0x11, 0x12, 0x13};
-    uint8_t packetData2[] = {0x14, 0x15, 0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x30, 0x31};
-    uint8_t packetData3[] = {0x32, 0x33, 0x34, 0x35, 0x40, 0x41};
+    uint8_t packetData1[] = { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x10, 0x11, 0x12, 0x13 };
+    uint8_t packetData2[] = { 0x14, 0x15, 0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x30, 0x31 };
+    uint8_t packetData3[] = { 0x32, 0x33, 0x34, 0x35, 0x40, 0x41 };
 
     uint8_t decodedFrame[] = { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05,
                                0x10, 0x11, 0x12, 0x13, 0x14, 0x15,
@@ -96,12 +92,11 @@ void test_Opus_Depacketizer( void )
                        OPUS_RESULT_OK );
     TEST_ASSERT_EQUAL( frame.frameDataLength,
                        sizeof( decodedFrame ) );
-    for( i = 0; i < frame.frameDataLength; i++ )
-    {
-        TEST_ASSERT_EQUAL( frame.pFrameData[ i ],
-                           decodedFrame[ i ] );
-    }
+    TEST_ASSERT_EQUAL_UINT8_ARRAY( &( decodedFrame[ 0 ] ),
+                                   &( frame.pFrameData[ 0 ] ),
+                                   frame.frameDataLength );
 }
+
 /*-----------------------------------------------------------*/
 
 /**
@@ -113,11 +108,10 @@ void test_G711_Depacketizer( void )
     G711DepacketizerContext_t ctx;
     G711Packet_t packetsArray[ MAX_PACKET_IN_A_FRAME ], pkt;
     G711Frame_t frame;
-    size_t i;
 
-    uint8_t packetData1[] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x10, 0x11, 0x12, 0x13};
-    uint8_t packetData2[] = {0x14, 0x15, 0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x30, 0x31};
-    uint8_t packetData3[] = {0x32, 0x33, 0x34, 0x35, 0x40, 0x41};
+    uint8_t packetData1[] = { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x10, 0x11, 0x12, 0x13 };
+    uint8_t packetData2[] = { 0x14, 0x15, 0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x30, 0x31 };
+    uint8_t packetData3[] = { 0x32, 0x33, 0x34, 0x35, 0x40, 0x41 };
 
     uint8_t decodedFrame[] = { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05,
                                0x10, 0x11, 0x12, 0x13, 0x14, 0x15,
@@ -160,11 +154,9 @@ void test_G711_Depacketizer( void )
                        G711_RESULT_OK );
     TEST_ASSERT_EQUAL( frame.frameDataLength,
                        sizeof( decodedFrame ) );
-    for( i = 0; i < frame.frameDataLength; i++ )
-    {
-        TEST_ASSERT_EQUAL( frame.pFrameData[ i ],
-                           decodedFrame[ i ] );
-    }
+    TEST_ASSERT_EQUAL_UINT8_ARRAY( &( decodedFrame[ 0 ] ),
+                                   &( frame.pFrameData[ 0 ] ),
+                                   frame.frameDataLength );
 }
 
 /*-----------------------------------------------------------*/
@@ -180,7 +172,6 @@ void test_VP8_Depacketizer_AllProperties( void )
     VP8Packet_t pkt;
     VP8Frame_t frame;
     VP8Packet_t packetsArray[ VP8_PACKETS_ARR_LEN ];
-    size_t i;
 
     uint8_t packetData1[] = { 0xB0, 0xF0, 0xFA, 0xCD, 0xAB, 0xBA, 0x00, 0x01, 0x02, 0x03 };
     uint8_t packetData2[] = { 0xA0, 0xF0, 0xFA, 0xCD, 0xAB, 0xBA, 0x04, 0x05, 0x10, 0x11 };
@@ -260,11 +251,11 @@ void test_VP8_Depacketizer_AllProperties( void )
 
     TEST_ASSERT_EQUAL( frame.frameDataLength,
                        sizeof( decodedFrameData ) );
-    for( i = 0; i < frame.frameDataLength; i++ )
-    {
-        TEST_ASSERT_EQUAL( frame.pFrameData[ i ],
-                           decodedFrameData[ i ] );
-    }
+
+    TEST_ASSERT_EQUAL_UINT8_ARRAY( &( decodedFrameData[ 0 ] ),
+                                   &( frame.pFrameData[ 0 ] ),
+                                   frame.frameDataLength );
+
     TEST_ASSERT_EQUAL( frame.pictureId,
                        0x7ACD );
     TEST_ASSERT_EQUAL( frame.tl0PicIndex,
@@ -281,6 +272,7 @@ void test_VP8_Depacketizer_AllProperties( void )
                          VP8_FRAME_PROP_KEYIDX_PRESENT |
                          VP8_FRAME_PROP_DEPENDS_ON_BASE_ONLY ) );
 }
+
 /*-----------------------------------------------------------*/
 
 /**
@@ -294,7 +286,6 @@ void test_VP8_Depacketizer_PictureID( void )
     VP8Packet_t pkt;
     VP8Frame_t frame;
     VP8Packet_t packetsArray[ VP8_PACKETS_ARR_LEN ];
-    size_t i;
 
     uint8_t packetData1[] = { 0xB0, 0x40, 0xAB, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x10 };
     uint8_t packetData2[] = { 0xA0, 0x40, 0xAB, 0x11, 0x12, 0x13, 0x14, 0x15, 0x20, 0x21 };
@@ -350,17 +341,18 @@ void test_VP8_Depacketizer_PictureID( void )
 
     TEST_ASSERT_EQUAL( frame.frameDataLength,
                        sizeof( decodedFrameData ) );
-    for( i = 0; i < frame.frameDataLength; i++ )
-    {
-        TEST_ASSERT_EQUAL( frame.pFrameData[ i ],
-                           decodedFrameData[ i ] );
-    }
+
+    TEST_ASSERT_EQUAL_UINT8_ARRAY( &( decodedFrameData[ 0 ] ),
+                                   &( frame.pFrameData[ 0 ] ),
+                                   frame.frameDataLength );
+
     TEST_ASSERT_EQUAL( frame.tl0PicIndex,
                        0xAB );
     TEST_ASSERT_EQUAL( frame.frameProperties,
                        ( VP8_FRAME_PROP_NON_REF_FRAME |
                          VP8_FRAME_PROP_TL0PICIDX_PRESENT ) );
 }
+
 /*-----------------------------------------------------------*/
 
 /**
@@ -374,13 +366,13 @@ void test_H264_Depacketizer_GetNalu( void )
     Nalu_t nalu;
     uint8_t naluBuffer[ MAX_NALU_LENGTH ];
     H264Packet_t packetsArray[ MAX_PACKETS_IN_A_FRAME ];
-    uint8_t packetData1[] = {0x09, 0x10};
-    uint8_t packetData2[] = {0x67, 0x42, 0xc0, 0x1f, 0xda, 0x01, 0x40, 0x16, 0xec, 0x05, 0xa8, 0x08 };
-    uint8_t packetData3[] = {0x68, 0xce, 0x3c, 0x80 };
-    uint8_t packetData4[] = {0x06, 0x05, 0xff, 0xff, 0xb7, 0xdc, 0x45, 0xe9, 0xbd, 0xe6, 0xd9, 0x48 };
-    uint8_t packetData5[] = {0x7c, 0x85, 0x88, 0x84, 0x12, 0xff, 0xff, 0xfc, 0x3d, 0x14, 0x0, 0x4 };
-    uint8_t packetData6[] = {0x7c, 0x45, 0xba, 0xeb, 0xae, 0xba, 0xeb, 0xae, 0xba, 0xeb, 0xae, 0xba };
-    uint8_t packetData7[] = {0x65, 0x00, 0x6e, 0x22, 0x21, 0x04, 0xbf, 0xff, 0xff, 0x0f, 0x45, 0x00};
+    uint8_t packetData1[] = { 0x09, 0x10 };
+    uint8_t packetData2[] = { 0x67, 0x42, 0xc0, 0x1f, 0xda, 0x01, 0x40, 0x16, 0xec, 0x05, 0xa8, 0x08 };
+    uint8_t packetData3[] = { 0x68, 0xce, 0x3c, 0x80 };
+    uint8_t packetData4[] = { 0x06, 0x05, 0xff, 0xff, 0xb7, 0xdc, 0x45, 0xe9, 0xbd, 0xe6, 0xd9, 0x48 };
+    uint8_t packetData5[] = { 0x7c, 0x85, 0x88, 0x84, 0x12, 0xff, 0xff, 0xfc, 0x3d, 0x14, 0x0, 0x4 };
+    uint8_t packetData6[] = { 0x7c, 0x45, 0xba, 0xeb, 0xae, 0xba, 0xeb, 0xae, 0xba, 0xeb, 0xae, 0xba };
+    uint8_t packetData7[] = { 0x65, 0x00, 0x6e, 0x22, 0x21, 0x04, 0xbf, 0xff, 0xff, 0x0f, 0x45, 0x00 };
 
     result = H264Depacketizer_Init( &( ctx ),
                                     &( packetsArray[ 0 ] ),
@@ -451,7 +443,6 @@ void test_H264_Depacketizer_GetNalu( void )
         nalu.naluDataLength = MAX_NALU_LENGTH;
         result = H264Depacketizer_GetNalu( &( ctx ),
                                            &( nalu ) );
-
     }
     TEST_ASSERT_EQUAL( result,
                        H264_RESULT_NO_MORE_NALUS );
@@ -469,13 +460,13 @@ void test_H264_Depacketizer_GetFrame( void )
     H264DepacketizerContext_t ctx;
     Frame_t frame;
     H264Packet_t packetsArray[ MAX_PACKETS_IN_A_FRAME ];
-    uint8_t packetData1[] = {0x09, 0x10};
-    uint8_t packetData2[] = {0x67, 0x42, 0xc0, 0x1f, 0xda, 0x01, 0x40, 0x16, 0xec, 0x05, 0xa8, 0x08 };
-    uint8_t packetData3[] = {0x68, 0xce, 0x3c, 0x80 };
-    uint8_t packetData4[] = {0x06, 0x05, 0xff, 0xff, 0xb7, 0xdc, 0x45, 0xe9, 0xbd, 0xe6, 0xd9, 0x48 };
-    uint8_t packetData5[] = {0x7c, 0x85, 0x88, 0x84, 0x12, 0xff, 0xff, 0xfc, 0x3d, 0x14, 0x0, 0x4 };
-    uint8_t packetData6[] = {0x7c, 0x45, 0xba, 0xeb, 0xae, 0xba, 0xeb, 0xae, 0xba, 0xeb, 0xae, 0xba };
-    uint8_t packetData7[] = {0x65, 0x00, 0x6e, 0x22, 0x21, 0x04, 0xbf, 0xff, 0xff, 0x0f, 0x45, 0x00};
+    uint8_t packetData1[] = { 0x09, 0x10 };
+    uint8_t packetData2[] = { 0x67, 0x42, 0xc0, 0x1f, 0xda, 0x01, 0x40, 0x16, 0xec, 0x05, 0xa8, 0x08 };
+    uint8_t packetData3[] = { 0x68, 0xce, 0x3c, 0x80 };
+    uint8_t packetData4[] = { 0x06, 0x05, 0xff, 0xff, 0xb7, 0xdc, 0x45, 0xe9, 0xbd, 0xe6, 0xd9, 0x48 };
+    uint8_t packetData5[] = { 0x7c, 0x85, 0x88, 0x84, 0x12, 0xff, 0xff, 0xfc, 0x3d, 0x14, 0x0, 0x4 };
+    uint8_t packetData6[] = { 0x7c, 0x45, 0xba, 0xeb, 0xae, 0xba, 0xeb, 0xae, 0xba, 0xeb, 0xae, 0xba };
+    uint8_t packetData7[] = { 0x65, 0x00, 0x6e, 0x22, 0x21, 0x04, 0xbf, 0xff, 0xff, 0x0f, 0x45, 0x00 };
     uint32_t totalSize = 0;
     result = H264Depacketizer_Init( &( ctx ),
                                     &( packetsArray[ 0 ] ),
@@ -546,10 +537,11 @@ void test_H264_Depacketizer_GetFrame( void )
     TEST_ASSERT_EQUAL( result,
                        H264_RESULT_OK );
 }
+
 /*-----------------------------------------------------------*/
 
 /**
- * @brief Validate H264 depacketization happy path to get frame.
+ * @brief Validate H264 depacketization happy path to get properties.
  */
 void test_H264_Depacketizer_GetProperties( void )
 {
@@ -590,3 +582,5 @@ void test_H264_Depacketizer_GetProperties( void )
     TEST_ASSERT_EQUAL( packetProperties,
                        H264_PACKET_PROPERTY_END_PACKET );
 }
+
+/*-----------------------------------------------------------*/

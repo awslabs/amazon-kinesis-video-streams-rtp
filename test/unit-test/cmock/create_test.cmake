@@ -1,6 +1,4 @@
-# Taken from amazon-freertos repository
-
-#function to create the test executable
+# Function to create the test executable.
 function(create_test test_name
                      test_src
                      link_list
@@ -35,12 +33,12 @@ function(create_test test_name
                             ${CMAKE_CURRENT_BINARY_DIR}
         )
 
-    # link all libraries sent through parameters
+    # Link all libraries sent through parameters.
     foreach(link IN LISTS link_list)
         target_link_libraries(${test_name} ${link})
     endforeach()
 
-    # add dependency to all the dep_list parameter
+    # Add dependency to all the dep_list parameter.
     foreach(dependency IN LISTS dep_list)
         add_dependencies(${test_name} ${dependency})
         target_link_libraries(${test_name} ${dependency})
@@ -56,7 +54,7 @@ function(create_test test_name
 endfunction()
 
 # Run the C preprocessor on target files.
-# Takes a CMAKE list of arguments to pass to the C compiler
+# Takes a CMAKE list of arguments to pass to the C compiler.
 function(preprocess_mock_list mock_name file_list compiler_args)
     set_property(GLOBAL PROPERTY ${mock_name}_processed TRUE)
     foreach (target_file IN LISTS file_list)
@@ -84,12 +82,12 @@ function(preprocess_mock_list mock_name file_list compiler_args)
 endfunction()
 
 # Generates a mock library based on a module's header file
-# places the generated source file in the build directory
-# @param mock_name: name of the target name
-# @param mock_list list of header files to mock
-# @param cmock_config configuration file of the cmock framework
-# @param mock_include_list include list for the target
-# @param mock_define_list special definitions to control compilation
+# places the generated source file in the build directory.
+# @param mock_name: name of the target name.
+# @param mock_list list of header files to mock.
+# @param cmock_config configuration file of the cmock framework.
+# @param mock_include_list include list for the target.
+# @param mock_define_list special definitions to control compilation.
 function(create_mock_list mock_name
                           mock_list
                           cmock_config

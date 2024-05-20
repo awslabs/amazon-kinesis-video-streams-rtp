@@ -1,4 +1,3 @@
-# Taken from amazon-freertos repository
 :cmock:
   :mock_prefix: mock_
   :when_no_prototypes: :warn
@@ -10,8 +9,8 @@
     - :array
     - :callback
     - :return_thru_ptr
-  :callback_include_count: true # include a count arg when calling the callback
-  :callback_after_arg_check: false # check arguments before calling the callback
+  :callback_include_count: true # Include a count arg when calling the callback.
+  :callback_after_arg_check: false # Check arguments before calling the callback.
   :treat_as:
     uint8:    HEX8
     uint16:   HEX16
@@ -24,4 +23,3 @@
   :treat_externs: :exclude  # Now the extern-ed functions will be mocked.
   :weak: __attribute__((weak))
   :treat_externs: :include
-  

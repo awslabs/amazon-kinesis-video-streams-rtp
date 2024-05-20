@@ -25,7 +25,7 @@ set( MODULE_ROOT_DIR ${__MODULE_ROOT_DIR} CACHE INTERNAL "RTP repository root." 
 # Set the unit-test directory.
 set( UNIT_TEST_DIR ${MODULE_ROOT_DIR}/test/unit-test CACHE INTERNAL "Unit-test directory." )
 
-# Set the include directories
+# Set the include directories.
 string( APPEND GLOBAL_INCLUDES "-I ${MODULE_ROOT_DIR}/source/include")
 
 # Configure options to always show in CMake GUI.
@@ -83,7 +83,7 @@ add_cmock_targets()
 # Add function to enable CMock based tests and coverage.
 include( ${MODULE_ROOT_DIR}/test/unit-test/cmock/create_test.cmake )
 
-# Include unit-test build configuration
+# Include unit-test build configuration.
 include( ${UNIT_TEST_DIR}/packetization/ut.cmake )
 include( ${UNIT_TEST_DIR}/depacketization/ut.cmake )
 

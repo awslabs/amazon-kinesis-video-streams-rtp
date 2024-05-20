@@ -74,12 +74,12 @@ A RTP packet consist of following fields followed by an optional RTP Header exte
 ## Building Unit Tests
 
 ### Platform Prerequisites
-- For running unit tests
-    - C99 compiler like gcc
-    - CMake 3.13.0 or later
-    - Ruby 2.0.0 or later is additionally required for the CMock test framework
-      (that we use).
-- For running the coverage target, gcov and lcov are additionally required.
+- For running unit tests:
+    - C99 compiler like gcc.
+    - CMake 3.13.0 or later.
+    - Ruby 2.0.0 or later (It is required for the CMock test framework that we
+      use).
+- For running the coverage target, gcov and lcov are required.
 
 ### Checkout CMock Submodule
 By default, the submodules in this repository are configured with `update=none`
@@ -89,7 +89,7 @@ usage of other repositories.
 To build unit tests, the submodule dependency of CMock is required. Use the
 following command to clone the submodule:
 
-```
+```sh
 git submodule update --checkout --init --recursive test/CMock
 ```
 
@@ -98,7 +98,7 @@ git submodule update --checkout --init --recursive test/CMock
    submodule is cloned as described in [Checkout CMock Submodule](#checkout-cmock-submodule)).
 1. Run the following command to generate Makefiles:
 
-    ```
+    ```sh
     cmake -S test/unit-test -B build/ -G "Unix Makefiles" \
      -DCMAKE_BUILD_TYPE=Debug \
      -DBUILD_CLONE_SUBMODULES=ON \
@@ -106,12 +106,12 @@ git submodule update --checkout --init --recursive test/CMock
     ```
 1. Run the following command to build the library and unit tests:
 
-    ```
+    ```sh
     make -C build all
     ```
 1. Run the following command to execute all tests and view results:
 
-    ```
+    ```sh
     cd build && ctest -E system --output-on-failure
     ```
 

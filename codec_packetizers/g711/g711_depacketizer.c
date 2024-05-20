@@ -109,7 +109,7 @@ G711Result_t G711Depacketizer_GetPacketProperties( const uint8_t * pPacketData,
 {
     G711Result_t result = G711_RESULT_OK;
 
-    (void) ( packetDataLength );
+    ( void ) packetDataLength;
 
     if( ( pPacketData == NULL ) ||
         ( pProperties == NULL ) ||
