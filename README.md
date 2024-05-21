@@ -71,6 +71,81 @@ A RTP packet consist of following fields followed by an optional RTP Header exte
     4. For all codes other than H.264, Call `<Codec>Depacketizer_GetFrame()` to get the
        complete frame once all packets are added.
 
+## Building Unit Tests
+
+### Platform Prerequisites
+- For running unit tests:
+    - C99 compiler like gcc.
+    - CMake 3.13.0 or later.
+    - Ruby 2.0.0 or later (It is required for the CMock test framework that we
+      use).
+- For running the coverage target, gcov and lcov are required.
+
+### Checkout CMock Submodule
+By default, the submodules in this repository are configured with `update=none`
+in [.gitmodules](./.gitmodules) to avoid increasing clone time and disk space
+usage of other repositories.
+
+To build unit tests, the submodule dependency of CMock is required. Use the
+following command to clone the submodule:
+
+```sh
+git submodule update --checkout --init --recursive test/CMock
+```
+
+### Steps to build Unit Tests
+1. Go to the root directory of this repository. (Make sure that the CMock
+   submodule is cloned as described in [Checkout CMock Submodule](#checkout-cmock-submodule)).
+1. Run the following command to generate Makefiles:
+
+    ```sh
+    cmake -S test/unit-test -B build/ -G "Unix Makefiles" \
+     -DCMAKE_BUILD_TYPE=Debug \
+     -DBUILD_CLONE_SUBMODULES=ON \
+     -DCMAKE_C_FLAGS='--coverage -Wall -Wextra -Werror -DNDEBUG'
+    ```
+1. Run the following command to build the library and unit tests:
+
+    ```sh
+    make -C build all
+    ```
+1. Run the following command to execute all tests and view results:
+
+    ```sh
+    cd build && ctest -E system --output-on-failure
+    ```
+
+### Steps to generate code coverage report of Unit Test
+1. Run Unit Tests in [Steps to build Unit Tests](#steps-to-build-unit-tests).
+1. Generate coverage.info in build folder:
+
+    ```
+    make coverage
+    ```
+1. Get code coverage by lcov:
+
+    ```
+    lcov --rc lcov_branch_coverage=1 -r coverage.info -o coverage.info '*test*' '*CMakeCCompilerId*' '*mocks*'
+    ```
+1. Generage HTML report in folder `CodecovHTMLReport`:
+
+    ```
+    genhtml --rc lcov_branch_coverage=1 --ignore-errors source coverage.info --legend --output-directory=CodecovHTMLReport
+    ```
+
+### Script to run Unit Test and generate code coverage report
+
+```sh
+git submodule update --init --recursive --checkout test/CMock
+cmake -S test/unit-test -B build/ -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Debug -DBUILD_CLONE_SUBMODULES=ON -DCMAKE_C_FLAGS='--coverage -Wall -Wextra -Werror -DNDEBUG -DLIBRARY_LOG_LEVEL=LOG_DEBUG'
+make -C build all
+cd build
+ctest -E system --output-on-failure
+make coverage
+lcov --rc lcov_branch_coverage=1 -r coverage.info -o coverage.info '*test*' '*CMakeCCompilerId*' '*mocks*'
+genhtml --rc lcov_branch_coverage=1 --ignore-errors source coverage.info --legend --output-directory=CodecovHTMLReport
+```
+
 ## License
 
 This project is licensed under the Apache-2.0 License.

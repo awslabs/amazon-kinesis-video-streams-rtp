@@ -273,6 +273,8 @@ H264Result_t H264Depacketizer_GetPacketProperties( const uint8_t * pPacketData,
     H264Result_t result = H264_RESULT_OK;
     uint8_t packetType, fuHeader;
 
+    ( void ) packetDataLength;
+
     if( pProperties == NULL )
     {
         result = H264_RESULT_BAD_PARAM;

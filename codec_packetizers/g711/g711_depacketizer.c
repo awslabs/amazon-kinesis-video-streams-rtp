@@ -66,7 +66,6 @@ G711Result_t G711Depacketizer_GetFrame( G711DepacketizerContext_t * pCtx,
     G711Result_t result = G711_RESULT_OK;
     G711Packet_t * pPacket;
     size_t i, currentFrameDataIndex = 0;
-    uint8_t * frame = pFrame->pFrameData;
 
     if( ( pCtx == NULL ) ||
         ( pFrame == NULL ) ||
@@ -109,7 +108,8 @@ G711Result_t G711Depacketizer_GetPacketProperties( const uint8_t * pPacketData,
                                                    uint32_t * pProperties )
 {
     G711Result_t result = G711_RESULT_OK;
-    uint8_t packetType, fuHeader;
+
+    ( void ) packetDataLength;
 
     if( ( pPacketData == NULL ) ||
         ( pProperties == NULL ) ||
