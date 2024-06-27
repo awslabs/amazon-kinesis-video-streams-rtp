@@ -30,6 +30,7 @@ typedef struct RtpPacketQueue
     size_t rtpPacketInfoArrayLength;
     size_t writeIndex;
     size_t readIndex;
+    size_t packetCount;
 } RtpPacketQueue_t;
 
 /*----------------------------------------------------------------------------*/
