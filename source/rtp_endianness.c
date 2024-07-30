@@ -9,7 +9,7 @@
 
 /*-----------------------------------------------------------*/
 
-void RtpWriteUint32Swap( uint8_t * pDst,
+static void RtpWriteUint32Swap( uint8_t * pDst,
                          uint32_t val )
 {
     *( ( uint32_t * )( pDst ) ) = SWAP_BYTES_32( val );
@@ -17,14 +17,14 @@ void RtpWriteUint32Swap( uint8_t * pDst,
 
 /*-----------------------------------------------------------*/
 
-uint32_t RtpReadUint32Swap( const uint8_t * pSrc )
+static uint32_t RtpReadUint32Swap( const uint8_t * pSrc )
 {
     return SWAP_BYTES_32( *( ( uint32_t * )( pSrc ) ) );
 }
 
 /*-----------------------------------------------------------*/
 
-void RtpWriteUint32NoSwap( uint8_t * pDst,
+static void RtpWriteUint32NoSwap( uint8_t * pDst,
                            uint32_t val )
 {
     *( ( uint32_t * )( pDst ) ) = ( val );
@@ -32,7 +32,7 @@ void RtpWriteUint32NoSwap( uint8_t * pDst,
 
 /*-----------------------------------------------------------*/
 
-uint32_t RtpReadUint32NoSwap( const uint8_t * pSrc )
+static uint32_t RtpReadUint32NoSwap( const uint8_t * pSrc )
 {
     return *( ( uint32_t * )( pSrc ) );
 }
