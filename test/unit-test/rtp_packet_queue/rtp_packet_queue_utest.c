@@ -264,6 +264,7 @@ void test_RtpPacketQueue_Peek( void )
     result = RtpPacketQueue_Peek( &( rtpPacketQueue ),
                                   &( rtpPacketInfo ) );
 
+    TEST_ASSERT_EQUAL( RTP_PACKET_QUEUE_RESULT_OK, result );
     TEST_ASSERT_EQUAL( 20, rtpPacketInfo.seqNum );
     TEST_ASSERT_EQUAL( sizeof( expectedSerializedPacket ),
                        rtpPacketInfo.serializedPacketLength );
