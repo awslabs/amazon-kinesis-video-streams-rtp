@@ -40,10 +40,10 @@ RtpPacketQueueResult_t RtpPacketQueue_Init( RtpPacketQueue_t * pQueue,
                                             size_t rtpPacketInfoArrayLength );
 
 RtpPacketQueueResult_t RtpPacketQueue_Enqueue( RtpPacketQueue_t * pQueue,
-                                               RtpPacketInfo_t * pRtpPacketInfo );
+                                               const RtpPacketInfo_t * pRtpPacketInfo );
 
 RtpPacketQueueResult_t RtpPacketQueue_ForceEnqueue( RtpPacketQueue_t * pQueue,
-                                                    RtpPacketInfo_t * pRtpPacketInfo,
+                                                    const RtpPacketInfo_t * pRtpPacketInfo,
                                                     RtpPacketInfo_t * pDeletedRtpPacketInfo );
 
 RtpPacketQueueResult_t RtpPacketQueue_Dequeue( RtpPacketQueue_t * pQueue,

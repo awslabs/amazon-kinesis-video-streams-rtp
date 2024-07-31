@@ -3,7 +3,7 @@
 include( ${MODULE_ROOT_DIR}/rtpFilePaths.cmake )
 
 # ====================  Define your project name (edit) ========================
-set( project_name "rtpPktStore" )
+set( project_name "rtp_packet_queue" )
 
 message( STATUS "${project_name}" )
 

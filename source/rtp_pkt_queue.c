@@ -9,19 +9,19 @@
 #define WRAP( x, n ) \
     ( ( x ) % ( n ) )
 
-#define INC_READ_INDEX( pQueue ) \
-    WRAP( ( pQueue )->readIndex + 1,\
+#define INC_READ_INDEX( pQueue )        \
+    WRAP( ( pQueue )->readIndex + 1,    \
           ( pQueue )->rtpPacketInfoArrayLength )
 
-#define INC_WRITE_INDEX( pQueue ) \
-    WRAP( ( pQueue )->writeIndex + 1,\
+#define INC_WRITE_INDEX( pQueue )       \
+    WRAP( ( pQueue )->writeIndex + 1,   \
           ( pQueue )->rtpPacketInfoArrayLength )
 
 #define IS_QUEUE_FULL( pQueue ) \
-    ( pQueue->packetCount == ( pQueue )->rtpPacketInfoArrayLength )
+    ( ( pQueue )->packetCount == ( pQueue )->rtpPacketInfoArrayLength )
 
 #define IS_QUEUE_EMPTY( pQueue ) \
-    ( pQueue->packetCount == 0 )
+    ( ( pQueue )->packetCount == 0 )
 
 /*----------------------------------------------------------------------------*/
 
@@ -58,10 +58,10 @@ RtpPacketQueueResult_t RtpPacketQueue_Init( RtpPacketQueue_t * pQueue,
 /*----------------------------------------------------------------------------*/
 
 /**
- * @brief Add an RTP packet into the specified RTP packet queue..
+ * @brief Add an RTP packet info into the specified queue.
  */
 RtpPacketQueueResult_t RtpPacketQueue_Enqueue( RtpPacketQueue_t * pQueue,
-                                               RtpPacketInfo_t * pRtpPacketInfo )
+                                               const RtpPacketInfo_t * pRtpPacketInfo )
 {
     RtpPacketQueueResult_t result = RTP_PACKET_QUEUE_RESULT_OK;
 
@@ -95,11 +95,12 @@ RtpPacketQueueResult_t RtpPacketQueue_Enqueue( RtpPacketQueue_t * pQueue,
 /*----------------------------------------------------------------------------*/
 
 /**
- * @brief Add an element to the queue, replacing the oldest element if the queue is full.
- *        Return the deleted packet info if the queue is full.
+ * @brief Add an RTP packet info into the specified queue.
+ *
+ * Delete the oldest RTP packet info and return it, if the queue is full.
  */
 RtpPacketQueueResult_t RtpPacketQueue_ForceEnqueue( RtpPacketQueue_t * pQueue,
-                                                    RtpPacketInfo_t * pRtpPacketInfo,
+                                                    const RtpPacketInfo_t * pRtpPacketInfo,
                                                     RtpPacketInfo_t * pDeletedRtpPacketInfo )
 {
     RtpPacketQueueResult_t result = RTP_PACKET_QUEUE_RESULT_OK;
@@ -138,7 +139,7 @@ RtpPacketQueueResult_t RtpPacketQueue_ForceEnqueue( RtpPacketQueue_t * pQueue,
 /*----------------------------------------------------------------------------*/
 
 /**
- * @brief Read and remove the oldest elements from the queue.
+ * @brief Read and remove the oldest RTP packet info from the queue.
  */
 RtpPacketQueueResult_t RtpPacketQueue_Dequeue( RtpPacketQueue_t * pQueue,
                                                RtpPacketInfo_t * pRtpPacketInfo )
@@ -177,7 +178,7 @@ RtpPacketQueueResult_t RtpPacketQueue_Dequeue( RtpPacketQueue_t * pQueue,
 /*----------------------------------------------------------------------------*/
 
 /**
- * @brief Read the first element from the queue without removing it.
+ * @brief Read the oldest RTP packet info from the queue without removing it.
  */
 RtpPacketQueueResult_t RtpPacketQueue_Peek( RtpPacketQueue_t * pQueue,
                                             RtpPacketInfo_t * pRtpPacketInfo )
@@ -211,15 +212,16 @@ RtpPacketQueueResult_t RtpPacketQueue_Peek( RtpPacketQueue_t * pQueue,
 /*----------------------------------------------------------------------------*/
 
 /**
- * @brief Read and remove the element with the matching sequence number from the queue.
- *        Return RTP_PACKET_QUEUE_RESULT_PACKET_NOT_FOUND is the sequence number is
- *        not found.
+ * @brief Read and remove the RTP packet info with the matching sequence number.
+ *
+ * Return RTP_PACKET_QUEUE_RESULT_PACKET_NOT_FOUND if an RTP packet info with
+ * matching sequence number is not found.
  */
 RtpPacketQueueResult_t RtpPacketQueue_Retrieve( RtpPacketQueue_t * pQueue,
                                                 uint16_t seqNum,
                                                 RtpPacketInfo_t * pRtpPacketInfo )
 {
-    size_t i;
+    size_t i, readIndex;
     RtpPacketQueueResult_t result = RTP_PACKET_QUEUE_RESULT_OK;
 
     if( ( pQueue == NULL ) ||
@@ -240,16 +242,16 @@ RtpPacketQueueResult_t RtpPacketQueue_Retrieve( RtpPacketQueue_t * pQueue,
     {
         result = RTP_PACKET_QUEUE_RESULT_PACKET_NOT_FOUND;
 
-        for( i = pQueue->readIndex;
-             i != pQueue->writeIndex;
-             i = WRAP( ( i + 1 ),
-                       pQueue->rtpPacketInfoArrayLength ) )
+        for( i = 0; i < pQueue->packetCount; i++ )
         {
-            if( pQueue->pRtpPacketInfoArray[ i ].seqNum == seqNum )
+            readIndex = WRAP( ( pQueue->readIndex + i ),
+                              pQueue->rtpPacketInfoArrayLength );
+
+            if( pQueue->pRtpPacketInfoArray[ readIndex ].seqNum == seqNum )
             {
-                pRtpPacketInfo->seqNum = pQueue->pRtpPacketInfoArray[ i ].seqNum;
-                pRtpPacketInfo->pSerializedRtpPacket = pQueue->pRtpPacketInfoArray[ i ].pSerializedRtpPacket;
-                pRtpPacketInfo->serializedPacketLength = pQueue->pRtpPacketInfoArray[ i ].serializedPacketLength;
+                pRtpPacketInfo->seqNum = pQueue->pRtpPacketInfoArray[ readIndex ].seqNum;
+                pRtpPacketInfo->pSerializedRtpPacket = pQueue->pRtpPacketInfoArray[ readIndex ].pSerializedRtpPacket;
+                pRtpPacketInfo->serializedPacketLength = pQueue->pRtpPacketInfoArray[ readIndex ].serializedPacketLength;
 
                 result = RTP_PACKET_QUEUE_RESULT_OK;
                 break;

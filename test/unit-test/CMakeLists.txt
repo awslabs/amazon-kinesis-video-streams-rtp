@@ -86,7 +86,7 @@ include( ${MODULE_ROOT_DIR}/test/unit-test/cmock/create_test.cmake )
 # Include unit-test build configuration.
 include( ${UNIT_TEST_DIR}/packetization/ut.cmake )
 include( ${UNIT_TEST_DIR}/depacketization/ut.cmake )
-include( ${UNIT_TEST_DIR}/rtpPktStore/ut.cmake )
+include( ${UNIT_TEST_DIR}/rtp_packet_queue/ut.cmake )
 
 #  ==================================== Coverage Analysis configuration ========================================
 # Add a target for running coverage on tests.
@@ -96,6 +96,6 @@ add_custom_target( coverage
     DEPENDS cmock unity
     packetization
     depacketization
-    rtpPktStore
+    rtp_packet_queue
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
 )
