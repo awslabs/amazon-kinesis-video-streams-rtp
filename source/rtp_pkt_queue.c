@@ -144,30 +144,12 @@ RtpPacketQueueResult_t RtpPacketQueue_ForceEnqueue( RtpPacketQueue_t * pQueue,
 RtpPacketQueueResult_t RtpPacketQueue_Dequeue( RtpPacketQueue_t * pQueue,
                                                RtpPacketInfo_t * pRtpPacketInfo )
 {
-    RtpPacketQueueResult_t result = RTP_PACKET_QUEUE_RESULT_OK;
+    RtpPacketQueueResult_t result;
 
-    if( pQueue == NULL )
-    {
-        result = RTP_PACKET_QUEUE_RESULT_BAD_PARAM;
-    }
+    result = RtpPacketQueue_Peek( pQueue, pRtpPacketInfo );
 
     if( result == RTP_PACKET_QUEUE_RESULT_OK )
     {
-        if( IS_QUEUE_EMPTY( pQueue ) )
-        {
-            result = RTP_PACKET_QUEUE_RESULT_EMPTY;
-        }
-    }
-
-    if( result == RTP_PACKET_QUEUE_RESULT_OK )
-    {
-        if( pRtpPacketInfo != NULL )
-        {
-            pRtpPacketInfo->seqNum = pQueue->pRtpPacketInfoArray[ pQueue->readIndex ].seqNum;
-            pRtpPacketInfo->pSerializedRtpPacket = pQueue->pRtpPacketInfoArray[ pQueue->readIndex ].pSerializedRtpPacket;
-            pRtpPacketInfo->serializedPacketLength = pQueue->pRtpPacketInfoArray[ pQueue->readIndex ].serializedPacketLength;
-        }
-
         pQueue->readIndex = INC_READ_INDEX( pQueue );
         pQueue->packetCount -= 1;
     }
