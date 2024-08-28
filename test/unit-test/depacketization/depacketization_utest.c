@@ -467,7 +467,6 @@ void test_H264_Depacketizer_GetFrame( void )
     uint8_t packetData5[] = { 0x7c, 0x85, 0x88, 0x84, 0x12, 0xff, 0xff, 0xfc, 0x3d, 0x14, 0x0, 0x4 };
     uint8_t packetData6[] = { 0x7c, 0x45, 0xba, 0xeb, 0xae, 0xba, 0xeb, 0xae, 0xba, 0xeb, 0xae, 0xba };
     uint8_t packetData7[] = { 0x65, 0x00, 0x6e, 0x22, 0x21, 0x04, 0xbf, 0xff, 0xff, 0x0f, 0x45, 0x00 };
-    uint32_t totalSize = 0;
     result = H264Depacketizer_Init( &( ctx ),
                                     &( packetsArray[ 0 ] ),
                                     MAX_PACKETS_IN_A_FRAME );
@@ -476,7 +475,6 @@ void test_H264_Depacketizer_GetFrame( void )
 
     pkt.pPacketData = &( packetData1[ 0 ] );
     pkt.packetDataLength = sizeof( packetData1 );
-    totalSize += pkt.packetDataLength;
     result = H264Depacketizer_AddPacket( &( ctx ),
                                          &( pkt ) );
     TEST_ASSERT_EQUAL( result,
@@ -484,7 +482,6 @@ void test_H264_Depacketizer_GetFrame( void )
 
     pkt.pPacketData = &( packetData2[ 0 ] );
     pkt.packetDataLength = sizeof( packetData2 );
-    totalSize += pkt.packetDataLength;
     result = H264Depacketizer_AddPacket( &( ctx ),
                                          &( pkt ) );
     TEST_ASSERT_EQUAL( result,
@@ -492,7 +489,6 @@ void test_H264_Depacketizer_GetFrame( void )
 
     pkt.pPacketData = &( packetData3[ 0 ] );
     pkt.packetDataLength = sizeof( packetData3 );
-    totalSize += pkt.packetDataLength;
     result = H264Depacketizer_AddPacket( &( ctx ),
                                          &( pkt ) );
     TEST_ASSERT_EQUAL( result,
@@ -500,7 +496,6 @@ void test_H264_Depacketizer_GetFrame( void )
 
     pkt.pPacketData = &( packetData4[ 0 ] );
     pkt.packetDataLength = sizeof( packetData4 );
-    totalSize += pkt.packetDataLength;
     result = H264Depacketizer_AddPacket( &( ctx ),
                                          &( pkt ) );
     TEST_ASSERT_EQUAL( result,
@@ -508,7 +503,6 @@ void test_H264_Depacketizer_GetFrame( void )
 
     pkt.pPacketData = &( packetData5[ 0 ] );
     pkt.packetDataLength = sizeof( packetData5 );
-    totalSize += pkt.packetDataLength;
     result = H264Depacketizer_AddPacket( &( ctx ),
                                          &( pkt ) );
     TEST_ASSERT_EQUAL( result,
@@ -516,7 +510,6 @@ void test_H264_Depacketizer_GetFrame( void )
 
     pkt.pPacketData = &( packetData6[ 0 ] );
     pkt.packetDataLength = sizeof( packetData6 );
-    totalSize += pkt.packetDataLength;
     result = H264Depacketizer_AddPacket( &( ctx ),
                                          &( pkt ) );
     TEST_ASSERT_EQUAL( result,
@@ -524,7 +517,6 @@ void test_H264_Depacketizer_GetFrame( void )
 
     pkt.pPacketData = &( packetData7[ 0 ] );
     pkt.packetDataLength = sizeof( packetData7 );
-    totalSize += pkt.packetDataLength;
     result = H264Depacketizer_AddPacket( &( ctx ),
                                          &( pkt ) );
     TEST_ASSERT_EQUAL( result,
