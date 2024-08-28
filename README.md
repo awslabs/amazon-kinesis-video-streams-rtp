@@ -117,7 +117,7 @@ git submodule update --checkout --init --recursive test/CMock
 
 ### Steps to generate code coverage report of Unit Test
 1. Run Unit Tests in [Steps to build Unit Tests](#steps-to-build-unit-tests).
-2. Generate coverage report in 'build/coverage' folder:
+1. Generate coverage report in 'build/coverage' folder:
 
     ```
     make coverage

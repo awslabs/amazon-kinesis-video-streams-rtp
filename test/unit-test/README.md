@@ -64,7 +64,7 @@ popd
 
 # Calculate the coverage
 make -C ${BUILD_DIR}/ coverage
-
+```
 
 You should see an output similar to this:
 

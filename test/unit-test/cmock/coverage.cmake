@@ -52,7 +52,7 @@ execute_process(
                          --base-directory ${CMAKE_BINARY_DIR}
                          --directory ${CMAKE_BINARY_DIR}
                          --output-file ${CMAKE_BINARY_DIR}/second_coverage.info
-                          --include "*source*"
+                         --include "*source*"
                          --include "*codec_packetizers*"
         )
 
@@ -71,5 +71,5 @@ execute_process(
             COMMAND genhtml --rc branch_coverage=1
                             --branch-coverage
                             --output-directory ${CMAKE_BINARY_DIR}/coverage
-                                ${CMAKE_BINARY_DIR}/coverage.info
+                            ${CMAKE_BINARY_DIR}/coverage.info
         )
