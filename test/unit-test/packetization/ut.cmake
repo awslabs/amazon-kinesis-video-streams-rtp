@@ -71,7 +71,6 @@ create_real_library(${real_name}
         )
 
 list(APPEND utest_link_list
-            -l${mock_name}
             lib${real_name}.a
         )
 
