@@ -125,7 +125,7 @@ function(create_mock_list mock_name
                                ${mock_include_list}
            )
 
-    if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+    if (APPLE)
         set_target_properties(${mock_name} PROPERTIES
                               LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib
                               POSITION_INDEPENDENT_CODE ON
