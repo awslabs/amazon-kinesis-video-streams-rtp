@@ -51,6 +51,66 @@ void test_RtpPacketQueue_Init( void )
 /*-----------------------------------------------------------*/
 
 /**
+ * @brief Validate RtpPacketQueue_Init functionality for BAD_PARAM
+ */
+void test_RtpPacketQueue_Init_Fail( void )
+{
+    RtpPacketQueueResult_t result;
+
+    result = RtpPacketQueue_Init( NULL,
+                                  &( rtpPacketInfoArray[ 0 ] ),
+                                  MAX_IN_FLIGHT_PKTS );
+
+    TEST_ASSERT_EQUAL( RTP_PACKET_QUEUE_RESULT_BAD_PARAM, result );
+    TEST_ASSERT_EQUAL( &( rtpPacketInfoArray[ 0 ] ), rtpPacketQueue.pRtpPacketInfoArray );
+    TEST_ASSERT_EQUAL( MAX_IN_FLIGHT_PKTS, rtpPacketQueue.rtpPacketInfoArrayLength );
+    TEST_ASSERT_EQUAL( 0, rtpPacketQueue.readIndex );
+    TEST_ASSERT_EQUAL( 0, rtpPacketQueue.writeIndex );
+    TEST_ASSERT_EQUAL( 0, rtpPacketQueue.packetCount );
+
+    result = RtpPacketQueue_Init( &( rtpPacketQueue ),
+                                  NULL,
+                                  MAX_IN_FLIGHT_PKTS );
+
+    TEST_ASSERT_EQUAL( RTP_PACKET_QUEUE_RESULT_BAD_PARAM, result );
+    TEST_ASSERT_EQUAL( &( rtpPacketInfoArray[ 0 ]), rtpPacketQueue.pRtpPacketInfoArray );
+    TEST_ASSERT_EQUAL( MAX_IN_FLIGHT_PKTS, rtpPacketQueue.rtpPacketInfoArrayLength );
+    TEST_ASSERT_EQUAL( 0, rtpPacketQueue.readIndex );
+    TEST_ASSERT_EQUAL( 0, rtpPacketQueue.writeIndex );
+    TEST_ASSERT_EQUAL( 0, rtpPacketQueue.packetCount );
+
+    result = RtpPacketQueue_Init( &( rtpPacketQueue ),
+                                   &( rtpPacketInfoArray[ 0 ]),
+                                  1 );
+
+    TEST_ASSERT_EQUAL( RTP_PACKET_QUEUE_RESULT_BAD_PARAM, result );
+    TEST_ASSERT_EQUAL( &( rtpPacketInfoArray[ 0 ]), rtpPacketQueue.pRtpPacketInfoArray );
+    TEST_ASSERT_EQUAL( MAX_IN_FLIGHT_PKTS, rtpPacketQueue.rtpPacketInfoArrayLength );
+    TEST_ASSERT_EQUAL( 0, rtpPacketQueue.readIndex );
+    TEST_ASSERT_EQUAL( 0, rtpPacketQueue.writeIndex );
+    TEST_ASSERT_EQUAL( 0, rtpPacketQueue.packetCount );
+}
+
+/*-----------------------------------------------------------*/
+
+/**
+ * @brief Validate Enqueue functionality for BAD_PARAM
+ */
+void test_RtpPacketQueue_Enqueue_Fail( void )
+{
+    RtpPacketQueueResult_t result;
+    RtpPacketInfo_t rtpPacketInfo;
+
+    result = RtpPacketQueue_Enqueue(NULL, &( rtpPacketInfo ));
+    TEST_ASSERT_EQUAL(RTP_PACKET_QUEUE_RESULT_BAD_PARAM, result);
+
+    result = RtpPacketQueue_Enqueue(&( rtpPacketQueue ), NULL);
+    TEST_ASSERT_EQUAL(RTP_PACKET_QUEUE_RESULT_BAD_PARAM, result);
+}
+
+/*-----------------------------------------------------------*/
+
+/**
  * @brief Add packets in the RTP packet Queue.
  */
 void test_RtpPacketQueue_ForceEnqueue( void )
@@ -143,6 +203,25 @@ void test_RtpPacketQueue_ForceEnqueue_Full( void )
     TEST_ASSERT_EQUAL( 1, deletedRtpPacketInfo.seqNum ); /* Second packet deleted. */
 }
 
+/*-----------------------------------------------------------*/
+
+/**
+ * @brief Validate Forced Enqueue if Queue or RtpPacketInfo or DeletedRtpPacketInfo is NULL
+ */
+void test_RtpPacketQueue_ForceEnqueue_Fail( void )
+{
+    RtpPacketQueueResult_t result;
+    RtpPacketInfo_t deletedRtpPacketInfo,rtpPacketInfo;
+
+    result = RtpPacketQueue_ForceEnqueue(NULL, &( rtpPacketInfo ), &(deletedRtpPacketInfo));
+    TEST_ASSERT_EQUAL(RTP_PACKET_QUEUE_RESULT_BAD_PARAM, result);
+
+    result = RtpPacketQueue_ForceEnqueue(&( rtpPacketQueue ), NULL , &(deletedRtpPacketInfo));
+    TEST_ASSERT_EQUAL(RTP_PACKET_QUEUE_RESULT_BAD_PARAM, result);
+
+    result = RtpPacketQueue_ForceEnqueue(&( rtpPacketQueue ), &( rtpPacketInfo ), NULL);
+    TEST_ASSERT_EQUAL(RTP_PACKET_QUEUE_RESULT_BAD_PARAM, result);
+}
 /*-----------------------------------------------------------*/
 
 /**
@@ -272,6 +351,22 @@ void test_RtpPacketQueue_Peek( void )
                        &( rtpPacketInfo.pSerializedRtpPacket[ 0 ] ) );
 }
 
+/*-----------------------------------------------------------*/
+
+/**
+ * @brief Validate Peek functionality when Queue or RtpPacketinfo is NULL
+ */
+void test_RtpPacketQueue_Peek_Fail( void )
+{
+    RtpPacketQueueResult_t result;
+    RtpPacketInfo_t rtpPacketInfo;
+
+    result = RtpPacketQueue_Peek(NULL, &( rtpPacketInfo ) );
+    TEST_ASSERT_EQUAL(RTP_PACKET_QUEUE_RESULT_BAD_PARAM, result);
+
+    result = RtpPacketQueue_Peek(&( rtpPacketQueue ), NULL);
+    TEST_ASSERT_EQUAL(RTP_PACKET_QUEUE_RESULT_BAD_PARAM, result);
+}
 /*-----------------------------------------------------------*/
 
 /**
@@ -434,3 +529,22 @@ void test_RtpPacketQueue_Retrieve( void )
 }
 
 /*-----------------------------------------------------------*/
+
+/**
+ * @brief Validate retrieve functionality when Queue or RtpPacketinfo is NULL
+ */
+
+void test_RtpPacketQueue_Retrieve_Fail( void )
+{
+    RtpPacketQueueResult_t result;
+    RtpPacketInfo_t rtpPacketInfo;
+
+    result = RtpPacketQueue_Retrieve(NULL, 8 , &( rtpPacketInfo ) );
+    TEST_ASSERT_EQUAL(RTP_PACKET_QUEUE_RESULT_BAD_PARAM, result);
+
+    result = RtpPacketQueue_Retrieve(&( rtpPacketQueue ), 8, NULL);
+    TEST_ASSERT_EQUAL(RTP_PACKET_QUEUE_RESULT_BAD_PARAM, result);
+}
+
+/*-----------------------------------------------------------*/
+
