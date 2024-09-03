@@ -23,9 +23,13 @@
 #define VP8_FRAME_BUF_LEN       32
 
 uint8_t frameBuffer[ MAX_FRAME_LENGTH ];
+uint8_t packetsArray[ MAX_PACKET_IN_A_FRAME ];
 
 void setUp( void )
 {
+    memset( &( packetsArray[0] ),
+            0,
+            sizeof( packetsArray ) );
     memset( &( frameBuffer[ 0 ] ),
             0,
             sizeof( frameBuffer ) );
@@ -108,6 +112,7 @@ void test_G711_Depacketizer( void )
     G711DepacketizerContext_t ctx;
     G711Packet_t packetsArray[ MAX_PACKET_IN_A_FRAME ], pkt;
     G711Frame_t frame;
+    uint32_t properties;
 
     uint8_t packetData1[] = { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x10, 0x11, 0x12, 0x13 };
     uint8_t packetData2[] = { 0x14, 0x15, 0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x30, 0x31 };
@@ -157,6 +162,278 @@ void test_G711_Depacketizer( void )
     TEST_ASSERT_EQUAL_UINT8_ARRAY( &( decodedFrame[ 0 ] ),
                                    &( frame.pFrameData[ 0 ] ),
                                    frame.frameDataLength );
+    pkt.pPacketData = &( packetData1[ 0 ] );
+    pkt.packetDataLength = sizeof( packetData1 );
+    result = G711Depacketizer_GetPacketProperties( pkt.pPacketData,
+                                                   pkt.packetDataLength,
+                                                   &properties );
+    TEST_ASSERT_EQUAL( result,
+                       G711_RESULT_OK );
+
+}
+
+/*-----------------------------------------------------------*/
+
+/**
+ * @brief Validate G711 depacketization Init functionality in case of bad parameters.
+ **/
+
+void test_G711_Depacketizer_Init_BadParams( void )
+{
+    G711Result_t result;
+    G711DepacketizerContext_t ctx;
+    G711Packet_t packetsArray[MAX_PACKET_IN_A_FRAME];
+
+    result = G711Depacketizer_Init( NULL,
+                                    &( packetsArray[0] ),
+                                    MAX_PACKET_IN_A_FRAME );
+    TEST_ASSERT_EQUAL( result,
+                       G711_RESULT_BAD_PARAM );
+
+    result = G711Depacketizer_Init( &( ctx ),
+                                    NULL,
+                                    MAX_PACKET_IN_A_FRAME );
+    TEST_ASSERT_EQUAL( result,
+                       G711_RESULT_BAD_PARAM );
+    result = G711Depacketizer_Init( &( ctx ),
+                                    &( packetsArray[0] ),
+                                    0 );
+    TEST_ASSERT_EQUAL( result,
+                       G711_RESULT_BAD_PARAM );
+}
+
+/*-----------------------------------------------------------*/
+
+/**
+ * @brief Validate G711 depacketization AddPacket functionality in case of bad parameters.
+ */
+
+void test_G711_Depacketizer_AddPacket_BadParams( void )
+{
+    G711Result_t result;
+    G711DepacketizerContext_t ctx;
+    G711Packet_t packetsArray[MAX_PACKET_IN_A_FRAME],pkt;
+
+    uint8_t packetData1[] = { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x10, 0x11, 0x12, 0x13 };
+    uint8_t packetData2[] = { 0x14, 0x15, 0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x30, 0x31 };
+
+    result = G711Depacketizer_Init( &( ctx ),
+                                    &( packetsArray[ 0 ] ),
+                                    MAX_PACKET_IN_A_FRAME );
+    TEST_ASSERT_EQUAL( result,
+                       G711_RESULT_OK );
+    pkt.pPacketData = &( packetData1[ 0 ] );
+    pkt.packetDataLength = sizeof( packetData1 );
+    result = G711Depacketizer_AddPacket( NULL,
+                                         &( pkt ) );
+    TEST_ASSERT_EQUAL( result,
+                       G711_RESULT_BAD_PARAM );
+
+    pkt.pPacketData = &( packetData1[ 0 ] );
+    pkt.packetDataLength = sizeof( packetData2 );
+    result = G711Depacketizer_AddPacket( &( ctx ),
+                                         NULL );
+    TEST_ASSERT_EQUAL( result,
+                       G711_RESULT_BAD_PARAM );
+}
+
+/*-----------------------------------------------------------*/
+
+/**
+ * @brief Validate G711 depacketization AddPacket functionality in case of out of memory.
+ **/
+
+void test_G711_Depacketizer_AddPacket_OutOfMem( void )
+{
+    G711Result_t result;
+    G711DepacketizerContext_t ctx;
+    G711Packet_t packetsArray[1],pkt;
+
+    uint8_t packetData1[] = { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x10, 0x11, 0x12, 0x13 };
+    uint8_t packetData2[] = { 0x14, 0x15, 0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x30, 0x31 };
+
+    result = G711Depacketizer_Init( &( ctx ),
+                                    &( packetsArray[ 0 ] ),
+                                    1 );
+    TEST_ASSERT_EQUAL( result,
+                       G711_RESULT_OK );
+
+    pkt.pPacketData = &( packetData1[ 0 ] );
+    pkt.packetDataLength = sizeof( packetData1 );
+    result = G711Depacketizer_AddPacket( &( ctx ),
+                                         &( pkt ) );
+    TEST_ASSERT_EQUAL( result,
+                       G711_RESULT_OK );
+
+    pkt.pPacketData = &( packetData2[ 0 ] );
+    pkt.packetDataLength = sizeof( packetData2 );
+    result = G711Depacketizer_AddPacket( &( ctx ),
+                                         &( pkt ) );
+    TEST_ASSERT_EQUAL( result,
+                       G711_RESULT_OUT_OF_MEMORY );
+}
+
+/*-----------------------------------------------------------*/
+
+/**
+ * @brief Validate G711 depacketization GetFrame functionality in case of bad parameters.
+ **/
+
+void test_G711_Depacketizer_GetFrame_BadParams( void )
+{
+    G711Result_t result;
+    G711DepacketizerContext_t ctx;
+    G711Packet_t packetsArray[ MAX_PACKET_IN_A_FRAME ], pkt;
+    G711Frame_t frame;
+    uint8_t packetData1[] = { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x10, 0x11, 0x12, 0x13 };
+    uint8_t packetData2[] = { 0x14, 0x15, 0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x30, 0x31 };
+    uint8_t packetData3[] = { 0x32, 0x33, 0x34, 0x35, 0x40, 0x41 };
+
+    result = G711Depacketizer_Init( &( ctx ),
+                                    &( packetsArray[ 0 ] ),
+                                    MAX_PACKET_IN_A_FRAME );
+    TEST_ASSERT_EQUAL( result,
+                       G711_RESULT_OK );
+
+    pkt.pPacketData = &( packetData1[ 0 ] );
+    pkt.packetDataLength = sizeof( packetData1 );
+    result = G711Depacketizer_AddPacket( &( ctx ),
+                                         &( pkt ) );
+    TEST_ASSERT_EQUAL( result,
+                       G711_RESULT_OK );
+
+    pkt.pPacketData = &( packetData2[ 0 ] );
+    pkt.packetDataLength = sizeof( packetData2 );
+    result = G711Depacketizer_AddPacket( &( ctx ),
+                                         &( pkt ) );
+    TEST_ASSERT_EQUAL( result,
+                       G711_RESULT_OK );
+
+    pkt.pPacketData = &( packetData3[ 0 ] );
+    pkt.packetDataLength = sizeof( packetData3 );
+    result = G711Depacketizer_AddPacket( &( ctx ),
+                                         &( pkt ) );
+    TEST_ASSERT_EQUAL( result,
+                       G711_RESULT_OK );
+
+    frame.pFrameData = &( frameBuffer[ 0 ] );
+    frame.frameDataLength = MAX_FRAME_LENGTH;
+    result = G711Depacketizer_GetFrame( NULL,
+                                        &( frame ) );
+    TEST_ASSERT_EQUAL( result,
+                       G711_RESULT_BAD_PARAM );
+
+    result = G711Depacketizer_GetFrame( &( ctx ),
+                                        NULL );
+    TEST_ASSERT_EQUAL( result,
+                       G711_RESULT_BAD_PARAM );
+
+    frame.pFrameData = NULL;
+    frame.frameDataLength = MAX_FRAME_LENGTH;
+    result = G711Depacketizer_GetFrame( &( ctx ),
+                                        &( frame ) );
+    TEST_ASSERT_EQUAL( result,
+                       G711_RESULT_BAD_PARAM );
+
+    frame.pFrameData = &( frameBuffer[ 0 ] );
+    frame.frameDataLength = 0;
+    result = G711Depacketizer_GetFrame( &( ctx ),
+                                        &( frame ) );
+    TEST_ASSERT_EQUAL( result,
+                       G711_RESULT_BAD_PARAM );
+}
+
+/*-----------------------------------------------------------*/
+
+/**
+ * @brief Validate G711 depacketization GetFrame functionality in case of out of memory.
+ **/
+
+void test_G711_Depacketizer_GetFrame_OutOfMem( void )
+{
+    G711Result_t result;
+    G711DepacketizerContext_t ctx;
+    G711Packet_t packetsArray[MAX_PACKET_IN_A_FRAME], pkt;
+    G711Frame_t frame;
+
+    uint8_t packetData1[] = { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x10, 0x11, 0x12, 0x13 };
+    uint8_t packetData2[] = { 0x14, 0x15, 0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x30, 0x31 };
+
+    uint8_t frameBuffer[10]; // declared a small buffer to test out of memory case
+
+    result = G711Depacketizer_Init( &( ctx ),
+                                    &( packetsArray[0] ),
+                                    MAX_PACKET_IN_A_FRAME );
+    TEST_ASSERT_EQUAL( result,
+                       G711_RESULT_OK );
+
+    pkt.pPacketData = &( packetData1[0] );
+    pkt.packetDataLength = sizeof( packetData1 );
+    result = G711Depacketizer_AddPacket( &( ctx ),
+                                         &( pkt ) );
+    TEST_ASSERT_EQUAL( result,
+                       G711_RESULT_OK );
+
+    pkt.pPacketData = &( packetData2[0] );
+    pkt.packetDataLength = sizeof( packetData2 );
+    result = G711Depacketizer_AddPacket( &( ctx ),
+                                         &( pkt ) );
+    TEST_ASSERT_EQUAL( result,
+                       G711_RESULT_OK );
+
+    frame.pFrameData = &( frameBuffer[0] );
+    frame.frameDataLength = sizeof( frameBuffer );
+    result = G711Depacketizer_GetFrame( &( ctx ),
+                                        &( frame ) );
+    TEST_ASSERT_EQUAL( result,
+                       G711_RESULT_OUT_OF_MEMORY );
+}
+
+/*-----------------------------------------------------------*/
+
+/**
+ * @brief Validate G711 depacketization GetPacketParameters functionality in case of bad parameters.
+ **/
+
+void test_G711_Depacketizer_GetPacketParameters_BadParams( void )
+{
+    G711Result_t result;
+    G711DepacketizerContext_t ctx;
+    G711Packet_t packetsArray[ MAX_PACKET_IN_A_FRAME ], pkt;
+    uint32_t properties;
+    uint8_t packetData1[] = { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x10, 0x11, 0x12, 0x13 };
+
+    result = G711Depacketizer_Init( &( ctx ),
+                                    &( packetsArray[ 0 ] ),
+                                    MAX_PACKET_IN_A_FRAME );
+    TEST_ASSERT_EQUAL( result,
+                       G711_RESULT_OK );
+
+    pkt.pPacketData = &( packetData1[ 0 ] );
+    pkt.packetDataLength = sizeof( packetData1 );
+    result = G711Depacketizer_AddPacket( &( ctx ),
+                                         &( pkt ) );
+    TEST_ASSERT_EQUAL( result,
+                       G711_RESULT_OK );
+
+    result = G711Depacketizer_GetPacketProperties( NULL,
+                                                   pkt.packetDataLength,
+                                                   &properties );
+    TEST_ASSERT_EQUAL( result,
+                       G711_RESULT_BAD_PARAM );
+
+
+    result = G711Depacketizer_GetPacketProperties( pkt.pPacketData,
+                                                   0,
+                                                   &properties );
+    TEST_ASSERT_EQUAL( result,
+                       G711_RESULT_BAD_PARAM );
+
+    result = G711Depacketizer_GetPacketProperties( pkt.pPacketData,
+                                                   pkt.packetDataLength,
+                                                   NULL );
+    TEST_ASSERT_EQUAL( result,
+                       G711_RESULT_BAD_PARAM );
 }
 
 /*-----------------------------------------------------------*/
