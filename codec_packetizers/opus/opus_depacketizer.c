@@ -84,7 +84,7 @@ OpusResult_t OpusDepacketizer_GetFrame( OpusDepacketizerContext_t * pCtx,
         }
     }
 
-    for( i = 0; ( i < pCtx->packetCount ) && ( result == OPUS_RESULT_OK ); i++ )
+    for( i = 0; ( result == OPUS_RESULT_OK ) && ( i < pCtx->packetCount ); i++ )
     {
         pPacket = &( pCtx->pPacketsArray[ i ] );
 

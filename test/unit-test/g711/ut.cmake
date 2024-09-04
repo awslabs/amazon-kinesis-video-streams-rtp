@@ -3,7 +3,7 @@
 include( ${MODULE_ROOT_DIR}/rtpFilePaths.cmake )
 
 # ====================  Define your project name (edit) ========================
-set( project_name "packetization" )
+set( project_name "g711" )
 
 message( STATUS "${project_name}" )
 
@@ -12,9 +12,6 @@ message( STATUS "${project_name}" )
 # List the files to mock here.
 list(APPEND mock_list
             "${MODULE_ROOT_DIR}/codec_packetizers/g711/include/g711_data_types.h"
-            "${MODULE_ROOT_DIR}/codec_packetizers/h264/include/h264_data_types.h"
-            "${MODULE_ROOT_DIR}/codec_packetizers/opus/include/opus_data_types.h"
-            "${MODULE_ROOT_DIR}/codec_packetizers/vp8/include/vp8_data_types.h"
         )
 # List the directories your mocks need.
 list(APPEND mock_include_list
@@ -31,10 +28,8 @@ list(APPEND mock_define_list
 
 # List the files you would like to test here.
 list(APPEND real_source_files
+            ${MODULE_ROOT_DIR}/codec_packetizers/g711/g711_depacketizer.c
             ${MODULE_ROOT_DIR}/codec_packetizers/g711/g711_packetizer.c
-            ${MODULE_ROOT_DIR}/codec_packetizers/h264/h264_packetizer.c
-            ${MODULE_ROOT_DIR}/codec_packetizers/opus/opus_packetizer.c
-            ${MODULE_ROOT_DIR}/codec_packetizers/vp8/vp8_packetizer.c
         )
 # List the directories the module under test includes.
 list(APPEND real_include_directories
@@ -45,7 +40,7 @@ list(APPEND real_include_directories
 
 # =====================  Create UnitTest Code here (edit)  =====================
 
-# List the directories your test needs to include.
+# list the directories your test needs to include.
 list(APPEND test_include_directories
             ${CMOCK_DIR}/vendor/unity/src
             ${RTP_INCLUDE_PUBLIC_DIRS}
