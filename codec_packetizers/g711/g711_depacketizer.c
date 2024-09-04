@@ -75,7 +75,7 @@ G711Result_t G711Depacketizer_GetFrame( G711DepacketizerContext_t * pCtx,
         result = G711_RESULT_BAD_PARAM;
     }
 
-    for( i = 0; ( i < pCtx->packetCount ) && ( result == G711_RESULT_OK ); i++ )
+    for( i = 0; ( result == G711_RESULT_OK ) && ( i < pCtx->packetCount ); i++ )
     {
         pPacket = &( pCtx->pPacketsArray[ i ] );
 
