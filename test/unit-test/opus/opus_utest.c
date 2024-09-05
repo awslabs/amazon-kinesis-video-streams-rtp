@@ -88,7 +88,7 @@ void test_Opus_Packetizer( void )
 /*-----------------------------------------------------------*/
 
 /**
- * @brief Validate Opus packetization Init functionality in case of bad parameters.
+ * @brief Validate Opus_Packetizer_Init in case of bad parameters.
  */
 void test_Opus_Packetizer_Init_BadParams( void )
 {
@@ -134,7 +134,7 @@ void test_Opus_Packetizer_Init_BadParams( void )
 /*-----------------------------------------------------------*/
 
 /**
- * @brief Validate Opus packetization GetPacket functionality in case of bad parameters.
+ * @brief Validate Opus_Packetizer_GetPacket in case of bad parameters.
  */
 void test_Opus_Packetizer_GetPacket_BadParams( void )
 {
@@ -227,7 +227,7 @@ void test_Opus_Depacketizer( void )
 /*-----------------------------------------------------------*/
 
 /**
- * @brief Validate Opus depacketization GetPacketProperties's happy path.
+ * @brief Validate Opus_Depacketizer_GetPacketProperties happy path.
  */
 void test_Opus_Depacketizer_GetPacketProperties( void )
 {
@@ -251,7 +251,7 @@ void test_Opus_Depacketizer_GetPacketProperties( void )
 /*-----------------------------------------------------------*/
 
 /**
- * @brief Validate Opus depacketization Init functionality in case of bad parameters.
+ * @brief Validate Opus_Depacketizer_Init in case of bad parameters.
  */
 void test_Opus_Depacketizer_Init_BadParams( void )
 {
@@ -282,7 +282,7 @@ void test_Opus_Depacketizer_Init_BadParams( void )
 /*-----------------------------------------------------------*/
 
 /**
- * @brief Validate Opus depacketization AddPacket functionality in case of bad parameters.
+ * @brief Validate Opus_Depacketizer_AddPacket in case of bad parameters.
  */
 void test_Opus_Depacketizer_AddPacket_BadParams( void )
 {
@@ -353,7 +353,7 @@ void test_Opus_Depacketizer_AddPacket_OutOfMemory( void )
 /*-----------------------------------------------------------*/
 
 /**
- * @brief Validate Opus depacketization GetFrame functionality in case of bad parameters.
+ * @brief Validate Opus_Depacketizer_GetFrame in case of bad parameters.
  */
 void test_Opus_Depacketizer_GetFrame_BadParams( void )
 {
@@ -391,7 +391,7 @@ void test_Opus_Depacketizer_GetFrame_BadParams( void )
 /*-----------------------------------------------------------*/
 
 /**
- * @brief Validate Opus depacketization GetFrame functionality in case of out of memory.
+ * @brief Validate Opus_Depacketizer_GetFrame in case of out of memory.
  */
 void test_Opus_Depacketizer_GetFrame_OutOfMemory( void )
 {
@@ -434,7 +434,7 @@ void test_Opus_Depacketizer_GetFrame_OutOfMemory( void )
 /*-----------------------------------------------------------*/
 
 /**
- * @brief Validate Opus depacketization GetFrame functionality in case of no more packets.
+ * @brief Validate Opus_Depacketizer_GetFrame in case of no more packets.
  */
 void test_Opus_Depacketizer_GetFrame_NoMorePackets( void )
 {
@@ -462,7 +462,7 @@ void test_Opus_Depacketizer_GetFrame_NoMorePackets( void )
 /*-----------------------------------------------------------*/
 
 /**
- * @brief Validate Opus depacketization GetPacketProperties functionality in case of bad parameters.
+ * @brief Validate Opus_Depacketizer_GetPacketProperties in case of bad parameters.
  */
 void test_Opus_Depacketizer_GetPacketProperties_BadParams( void )
 {
