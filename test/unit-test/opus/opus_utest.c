@@ -15,9 +15,9 @@
 #define MAX_FRAME_LENGTH        10 * 1024
 #define MAX_PACKET_IN_A_FRAME   512
 
-#define PACKETIZATION_BUFFER_LENGTH 10
+#define PACKET_BUFFER_LENGTH 10
 
-uint8_t packetizationBuffer[ PACKETIZATION_BUFFER_LENGTH];
+uint8_t packetBuffer[ PACKET_BUFFER_LENGTH ];
 uint8_t frameBuffer[ MAX_FRAME_LENGTH ];
 
 void setUp( void )
@@ -25,9 +25,10 @@ void setUp( void )
     memset( &( frameBuffer[ 0 ] ),
             0,
             sizeof( frameBuffer ) );
-    memset( &( packetizationBuffer[ 0 ] ),
+
+    memset( &( packetBuffer[ 0 ] ),
             0,
-            sizeof( packetizationBuffer ) );
+            sizeof( packetBuffer ) );
 }
 
 void tearDown( void )
@@ -53,30 +54,32 @@ void test_Opus_Packetizer( void )
     OpusFrame_t frame;
     size_t curFrameDataIndex = 0;
 
-    frame.pFrameData = &( frameData [ 0 ] );
+    frame.pFrameData = &( frameData[ 0 ] );
     frame.frameDataLength = sizeof( frameData );
 
     result = OpusPacketizer_Init( &( ctx ),
                                   &( frame ) );
+
     TEST_ASSERT_EQUAL( OPUS_RESULT_OK,
                        result );
 
-    pkt.pPacketData = &( packetizationBuffer[ 0 ] );
-    pkt.packetDataLength = PACKETIZATION_BUFFER_LENGTH;
+    pkt.pPacketData = &( packetBuffer[ 0 ] );
+    pkt.packetDataLength = 6;
     result = OpusPacketizer_GetPacket( &( ctx ),
                                        &( pkt ) );
 
     while( result != OPUS_RESULT_NO_MORE_PACKETS )
     {
-        TEST_ASSERT_TRUE( pkt.packetDataLength <= PACKETIZATION_BUFFER_LENGTH );
+        TEST_ASSERT_EQUAL( OPUS_MIN( 6, frame.frameDataLength - curFrameDataIndex ),
+                           pkt.packetDataLength );
 
         TEST_ASSERT_EQUAL_UINT8_ARRAY( &( frameData[ curFrameDataIndex ] ),
                                        &( pkt.pPacketData[ 0 ] ),
                                        pkt.packetDataLength );
         curFrameDataIndex += pkt.packetDataLength;
 
-        pkt.pPacketData = &( packetizationBuffer[ 0 ] );
-        pkt.packetDataLength = PACKETIZATION_BUFFER_LENGTH;
+        pkt.pPacketData = &( packetBuffer[ 0 ] );
+        pkt.packetDataLength = 6;
         result = OpusPacketizer_GetPacket( &( ctx ),
                                            &( pkt ) );
     }
@@ -101,16 +104,18 @@ void test_Opus_Packetizer_Init_BadParams( void )
     OpusPacketizerContext_t ctx = { 0 };
     OpusFrame_t frame;
 
-    frame.pFrameData = &( frameData [ 0 ] );
+    frame.pFrameData = &( frameData[ 0 ] );
     frame.frameDataLength = sizeof( frameData );
 
     result = OpusPacketizer_Init( NULL,
                                   &( frame ) );
+
     TEST_ASSERT_EQUAL( OPUS_RESULT_BAD_PARAM,
                        result );
 
     result = OpusPacketizer_Init( &( ctx ),
                                   NULL );
+
     TEST_ASSERT_EQUAL( OPUS_RESULT_BAD_PARAM,
                        result );
 
@@ -119,6 +124,7 @@ void test_Opus_Packetizer_Init_BadParams( void )
 
     result = OpusPacketizer_Init( &( ctx ),
                                   &( frame ) );
+
     TEST_ASSERT_EQUAL( OPUS_RESULT_BAD_PARAM,
                        result );
 
@@ -127,6 +133,7 @@ void test_Opus_Packetizer_Init_BadParams( void )
 
     result = OpusPacketizer_Init( &( ctx ),
                                   &( frame ) );
+
     TEST_ASSERT_EQUAL( OPUS_RESULT_BAD_PARAM,
                        result );
 }
@@ -142,22 +149,27 @@ void test_Opus_Packetizer_GetPacket_BadParams( void )
     OpusPacketizerContext_t ctx = { 0 };
     OpusPacket_t pkt;
 
-    pkt.pPacketData = &( packetizationBuffer[ 0 ] );
-    pkt.packetDataLength = PACKETIZATION_BUFFER_LENGTH;
+    pkt.pPacketData = &( packetBuffer[ 0 ] );
+    pkt.packetDataLength = PACKET_BUFFER_LENGTH;
+
     result = OpusPacketizer_GetPacket( NULL,
                                        &( pkt ) );
-    TEST_ASSERT_EQUAL( result,
-                       OPUS_RESULT_BAD_PARAM );
+
+    TEST_ASSERT_EQUAL( OPUS_RESULT_BAD_PARAM,
+                       result );
 
     result = OpusPacketizer_GetPacket( &( ctx ),
                                        NULL );
-    TEST_ASSERT_EQUAL( result,
-                       OPUS_RESULT_BAD_PARAM );
 
-    pkt.pPacketData = &( packetizationBuffer[ 0 ] );
+    TEST_ASSERT_EQUAL( OPUS_RESULT_BAD_PARAM,
+                       result );
+
+    pkt.pPacketData = &( packetBuffer[ 0 ] );
     pkt.packetDataLength = 0;
+
     result = OpusPacketizer_GetPacket( &( ctx ),
                                        &( pkt ) );
+
     TEST_ASSERT_EQUAL( OPUS_RESULT_BAD_PARAM,
                        result );
 }
@@ -187,38 +199,47 @@ void test_Opus_Depacketizer( void )
     result = OpusDepacketizer_Init( &( ctx ),
                                     &( packetsArray[ 0 ] ),
                                     MAX_PACKET_IN_A_FRAME );
+
     TEST_ASSERT_EQUAL( OPUS_RESULT_OK,
                        result );
 
     pkt.pPacketData = &( packetData1[ 0 ] );
     pkt.packetDataLength = sizeof( packetData1 );
+
     result = OpusDepacketizer_AddPacket( &( ctx ),
                                          &( pkt ) );
+
     TEST_ASSERT_EQUAL( OPUS_RESULT_OK,
                        result );
 
     pkt.pPacketData = &( packetData2[ 0 ] );
     pkt.packetDataLength = sizeof( packetData2 );
+
     result = OpusDepacketizer_AddPacket( &( ctx ),
                                          &( pkt ) );
+
     TEST_ASSERT_EQUAL( OPUS_RESULT_OK,
                        result );
 
     pkt.pPacketData = &( packetData3[ 0 ] );
     pkt.packetDataLength = sizeof( packetData3 );
+
     result = OpusDepacketizer_AddPacket( &( ctx ),
                                          &( pkt ) );
+
     TEST_ASSERT_EQUAL( OPUS_RESULT_OK,
                        result );
 
     frame.pFrameData = &( frameBuffer[ 0 ] );
     frame.frameDataLength = MAX_FRAME_LENGTH;
+
     result = OpusDepacketizer_GetFrame( &( ctx ),
                                         &( frame ) );
+
     TEST_ASSERT_EQUAL( OPUS_RESULT_OK,
                        result );
-    TEST_ASSERT_EQUAL( frame.frameDataLength,
-                       sizeof( decodedFrame ) );
+    TEST_ASSERT_EQUAL( sizeof( decodedFrame ),
+                       frame.frameDataLength );
     TEST_ASSERT_EQUAL_UINT8_ARRAY( &( decodedFrame[ 0 ] ),
                                    &( frame.pFrameData[ 0 ] ),
                                    frame.frameDataLength );
@@ -239,9 +260,11 @@ void test_Opus_Depacketizer_GetPacketProperties( void )
 
     pkt.pPacketData = &( packetData1[ 0 ] );
     pkt.packetDataLength = sizeof( packetData1 );
+
     result = OpusDepacketizer_GetPacketProperties( pkt.pPacketData,
                                                    pkt.packetDataLength,
-                                                   &properties );
+                                                   &( properties ) );
+
     TEST_ASSERT_EQUAL( OPUS_RESULT_OK,
                        result );
     TEST_ASSERT_EQUAL( OPUS_PACKET_PROPERTY_START_PACKET,
@@ -262,18 +285,21 @@ void test_Opus_Depacketizer_Init_BadParams( void )
     result = OpusDepacketizer_Init( NULL,
                                     &( packetsArray[ 0 ] ),
                                     MAX_PACKET_IN_A_FRAME );
+
     TEST_ASSERT_EQUAL( OPUS_RESULT_BAD_PARAM,
                        result );
 
     result = OpusDepacketizer_Init( &( ctx ),
                                     NULL,
                                     MAX_PACKET_IN_A_FRAME );
+
     TEST_ASSERT_EQUAL( OPUS_RESULT_BAD_PARAM,
                        result );
 
     result = OpusDepacketizer_Init( &( ctx ),
                                     &( packetsArray[ 0 ] ),
                                     0 );
+
     TEST_ASSERT_EQUAL( OPUS_RESULT_BAD_PARAM,
                        result );
 
@@ -294,23 +320,28 @@ void test_Opus_Depacketizer_AddPacket_BadParams( void )
 
     pkt.pPacketData = &( packetData1[ 0 ] );
     pkt.packetDataLength = sizeof( packetData1 );
+
     result = OpusDepacketizer_AddPacket( NULL,
                                          &( pkt ) );
+
     TEST_ASSERT_EQUAL( result,
                        OPUS_RESULT_BAD_PARAM );
 
     pkt.pPacketData = &( packetData1[ 0 ] );
     pkt.packetDataLength = sizeof( packetData1 );
+
     result = OpusDepacketizer_AddPacket( &( ctx ),
                                          NULL );
+
     TEST_ASSERT_EQUAL( result,
                        OPUS_RESULT_BAD_PARAM );
 
-
     pkt.pPacketData = &( packetData1[ 0 ] );
     pkt.packetDataLength = 0;
+
     result = OpusDepacketizer_AddPacket( &( ctx ),
                                          &( pkt ) );
+
     TEST_ASSERT_EQUAL( result,
                        OPUS_RESULT_BAD_PARAM );
 }
@@ -324,7 +355,7 @@ void test_Opus_Depacketizer_AddPacket_OutOfMemory( void )
 {
     OpusResult_t result;
     OpusDepacketizerContext_t ctx = { 0 };
-    OpusPacket_t packetsArray[1], pkt;
+    OpusPacket_t packetsArray[ 1 ], pkt;
 
     uint8_t packetData1[] = { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x10, 0x11, 0x12, 0x13 };
     uint8_t packetData2[] = { 0x14, 0x15, 0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x30, 0x31 };
@@ -332,20 +363,25 @@ void test_Opus_Depacketizer_AddPacket_OutOfMemory( void )
     result = OpusDepacketizer_Init( &( ctx ),
                                     &( packetsArray[ 0 ] ),
                                     1 );
+
     TEST_ASSERT_EQUAL( OPUS_RESULT_OK,
                        result );
 
     pkt.pPacketData = &( packetData1[ 0 ] );
     pkt.packetDataLength = sizeof( packetData1 );
+
     result = OpusDepacketizer_AddPacket( &( ctx ),
                                          &( pkt ) );
+
     TEST_ASSERT_EQUAL( OPUS_RESULT_OK,
                        result );
 
     pkt.pPacketData = &( packetData2[ 0 ] );
-    pkt.packetDataLength = sizeof( packetData1 );
+    pkt.packetDataLength = sizeof( packetData2 );
+
     result = OpusDepacketizer_AddPacket( &( ctx ),
                                          &( pkt ) );
+
     TEST_ASSERT_EQUAL( OPUS_RESULT_OUT_OF_MEMORY,
                        result );
 }
@@ -363,27 +399,34 @@ void test_Opus_Depacketizer_GetFrame_BadParams( void )
 
     frame.pFrameData = &( frameBuffer[ 0 ] );
     frame.frameDataLength = MAX_FRAME_LENGTH;
+
     result = OpusDepacketizer_GetFrame( NULL,
                                         &( frame ) );
+
     TEST_ASSERT_EQUAL( OPUS_RESULT_BAD_PARAM,
                        result );
 
     result = OpusDepacketizer_GetFrame( &( ctx ),
                                         NULL );
+
     TEST_ASSERT_EQUAL( OPUS_RESULT_BAD_PARAM,
                        result );
 
     frame.pFrameData = NULL;
     frame.frameDataLength = MAX_FRAME_LENGTH;
+
     result = OpusDepacketizer_GetFrame( &( ctx ),
                                         &( frame ) );
+
     TEST_ASSERT_EQUAL( OPUS_RESULT_BAD_PARAM,
                        result );
 
     frame.pFrameData = &( frameBuffer[ 0 ] );
     frame.frameDataLength = 0;
+
     result = OpusDepacketizer_GetFrame( &( ctx ),
                                         &( frame ) );
+
     TEST_ASSERT_EQUAL( OPUS_RESULT_BAD_PARAM,
                        result );
 }
@@ -406,27 +449,34 @@ void test_Opus_Depacketizer_GetFrame_OutOfMemory( void )
     result = OpusDepacketizer_Init( &( ctx ),
                                     &( packetsArray[ 0 ] ),
                                     MAX_PACKET_IN_A_FRAME );
+
     TEST_ASSERT_EQUAL( OPUS_RESULT_OK,
                        result );
 
     pkt.pPacketData = &( packetData1[ 0 ] );
     pkt.packetDataLength = sizeof( packetData1 );
+
     result = OpusDepacketizer_AddPacket( &( ctx ),
                                          &( pkt ) );
+
     TEST_ASSERT_EQUAL( OPUS_RESULT_OK,
                        result );
 
     pkt.pPacketData = &( packetData2[ 0 ] );
     pkt.packetDataLength = sizeof( packetData2 );
+
     result = OpusDepacketizer_AddPacket( &( ctx ),
                                          &( pkt ) );
+
     TEST_ASSERT_EQUAL( OPUS_RESULT_OK,
                        result );
 
     frame.pFrameData = &( frameBuffer[ 0 ] );
     frame.frameDataLength = 10; /* A small buffer to test out of memory case. */
+
     result = OpusDepacketizer_GetFrame( &( ctx ),
                                         &( frame ) );
+
     TEST_ASSERT_EQUAL( OPUS_RESULT_OUT_OF_MEMORY,
                        result );
 }
@@ -434,9 +484,9 @@ void test_Opus_Depacketizer_GetFrame_OutOfMemory( void )
 /*-----------------------------------------------------------*/
 
 /**
- * @brief Validate Opus_Depacketizer_GetFrame in case of no more packets.
+ * @brief Validate Opus_Depacketizer_GetFrame in case of no packets.
  */
-void test_Opus_Depacketizer_GetFrame_NoMorePackets( void )
+void test_Opus_Depacketizer_GetFrame_NoPackets( void )
 {
     OpusResult_t result;
     OpusDepacketizerContext_t ctx = { 0 };
@@ -449,12 +499,13 @@ void test_Opus_Depacketizer_GetFrame_NoMorePackets( void )
     TEST_ASSERT_EQUAL( OPUS_RESULT_OK,
                        result );
 
-    // Without adding any packet we try to invoke GetFrame with ctx.packetCount as 0
-
+    /* Try to get a frame without adding any packet. */
     frame.pFrameData = &( frameBuffer[ 0 ] );
     frame.frameDataLength = MAX_FRAME_LENGTH;
+
     result = OpusDepacketizer_GetFrame( &( ctx ),
                                         &( frame ) );
+
     TEST_ASSERT_EQUAL( OPUS_RESULT_NO_MORE_PACKETS,
                        result );
 }
@@ -472,24 +523,30 @@ void test_Opus_Depacketizer_GetPacketProperties_BadParams( void )
     uint8_t packetData[] = { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x10, 0x11, 0x12, 0x13 };
 
     pkt.packetDataLength = sizeof( packetData );
+
     result = OpusDepacketizer_GetPacketProperties( NULL,
                                                    pkt.packetDataLength,
-                                                   &properties );
+                                                   &( properties ) );
+
     TEST_ASSERT_EQUAL( OPUS_RESULT_BAD_PARAM,
                        result );
 
     pkt.pPacketData = &( packetData[ 0 ] );
+
     result = OpusDepacketizer_GetPacketProperties( pkt.pPacketData,
                                                    0,
-                                                   &properties );
+                                                   &( properties ) );
+
     TEST_ASSERT_EQUAL( OPUS_RESULT_BAD_PARAM,
                        result );
 
     pkt.pPacketData = &( packetData[ 0 ] );
     pkt.packetDataLength = sizeof( packetData );
+
     result = OpusDepacketizer_GetPacketProperties( pkt.pPacketData,
                                                    pkt.packetDataLength,
                                                    NULL );
+
     TEST_ASSERT_EQUAL( OPUS_RESULT_BAD_PARAM,
                        result );
 }
