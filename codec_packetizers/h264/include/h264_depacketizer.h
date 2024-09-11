@@ -10,6 +10,7 @@ typedef struct H264DePacketizerContext
     size_t packetsArrayLength;
     size_t headIndex;
     size_t tailIndex;
+    size_t curPacketIndex;
     size_t packetCount;
 } H264DepacketizerContext_t;
 
