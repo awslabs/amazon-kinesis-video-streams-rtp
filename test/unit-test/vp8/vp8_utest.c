@@ -45,23 +45,24 @@ void tearDown( void )
 void test_VP8_Packetizer( void )
 {
     VP8Result_t result;
-    uint8_t frameData[] = { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05,
-                            0x10, 0x11, 0x12, 0x13, 0x14, 0x15,
-                            0x20, 0x21, 0x22, 0x23, 0x24, 0x25,
-                            0x30, 0x31, 0x32, 0x33, 0x34, 0x35,
-                            0x40, 0x41 };
-    VP8PacketizerContext_t ctx = { 0 };
+    uint8_t frameData[] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05,
+                           0x10, 0x11, 0x12, 0x13, 0x14, 0x15,
+                           0x20, 0x21, 0x22, 0x23, 0x24, 0x25,
+                           0x30, 0x31, 0x32, 0x33, 0x34, 0x35,
+                           0x40, 0x41};
+    VP8PacketizerContext_t ctx = {0};
     VP8Frame_t frame;
     VP8Packet_t pkt;
-    uint8_t payloadDescFirstPkt[] = { 0x10 };
-    uint8_t payloadDesc[] = { 0x00 };
+    uint8_t payloadDescFirstPkt[] = {0x10};
+    uint8_t payloadDesc[] = {0x00};
     size_t i, frameDataIndex = 0;
+    size_t expectedPacketCount = ( sizeof( frameData ) + PACKET_BUFFER_LENGTH - 1 ) / PACKET_BUFFER_LENGTH;
 
     memset( &( frame ),
             0,
             sizeof( VP8Frame_t ) );
 
-    frame.pFrameData = &( frameData[ 0 ] );
+    frame.pFrameData = &( frameData[0] );
     frame.frameDataLength = sizeof( frameData );
 
     result = VP8Packetizer_Init( &( ctx ),
@@ -70,44 +71,48 @@ void test_VP8_Packetizer( void )
     TEST_ASSERT_EQUAL( VP8_RESULT_OK,
                        result );
 
-    pkt.pPacketData = &( packetBuffer[ 0 ] );
+    pkt.pPacketData = &( packetBuffer[0] );
     pkt.packetDataLength = PACKET_BUFFER_LENGTH;
 
-    result = VP8Packetizer_GetPacket( &( ctx ),
-                                      &( pkt ) );
-
-    while( result != VP8_RESULT_NO_MORE_PACKETS )
+    for(size_t packetIndex = 0; packetIndex < expectedPacketCount; packetIndex++)
     {
-        for( i = 0; i < pkt.packetDataLength; i++ )
+        result = VP8Packetizer_GetPacket( &( ctx ),
+                                          &( pkt ) );
+
+        TEST_ASSERT_EQUAL( VP8_RESULT_OK,
+                           result );
+
+        for(i = 0; i < pkt.packetDataLength; i++)
         {
             if( i < sizeof( payloadDesc ) )
             {
                 if( frameDataIndex == 0 )
                 {
-                    TEST_ASSERT_EQUAL( payloadDescFirstPkt[ i ],
-                                       pkt.pPacketData[ i ] );
+                    TEST_ASSERT_EQUAL( payloadDescFirstPkt[i],
+                                       pkt.pPacketData[i] );
                 }
                 else
                 {
-                    TEST_ASSERT_EQUAL( payloadDesc[ i ],
-                                       pkt.pPacketData[ i ] );
+                    TEST_ASSERT_EQUAL( payloadDesc[i],
+                                       pkt.pPacketData[i] );
                 }
             }
             else
             {
-                TEST_ASSERT_EQUAL( frameData[ frameDataIndex ],
-                                   pkt.pPacketData[ i ] );
+                TEST_ASSERT_EQUAL( frameData[frameDataIndex],
+                                   pkt.pPacketData[i] );
                 frameDataIndex++;
             }
         }
 
-        pkt.pPacketData = &( packetBuffer[ 0 ] );
+        pkt.pPacketData = &( packetBuffer[0] );
         pkt.packetDataLength = PACKET_BUFFER_LENGTH;
-
-        result = VP8Packetizer_GetPacket( &( ctx ),
-                                          &( pkt ) );
-
     }
+
+    result = VP8Packetizer_GetPacket( &( ctx ),
+                                      &( pkt ) );
+    TEST_ASSERT_EQUAL( VP8_RESULT_NO_MORE_PACKETS,
+                       result );
 
     TEST_ASSERT_EQUAL( sizeof( frameData ),
                        frameDataIndex );
@@ -121,17 +126,18 @@ void test_VP8_Packetizer( void )
 void test_VP8_Packetizer_PictureID( void )
 {
     VP8Result_t result;
-    uint8_t frameData[] = { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05,
-                            0x10, 0x11, 0x12, 0x13, 0x14, 0x15,
-                            0x20, 0x21, 0x22, 0x23, 0x24, 0x25,
-                            0x30, 0x31, 0x32, 0x33, 0x34, 0x35,
-                            0x40, 0x41 };
-    VP8PacketizerContext_t ctx = { 0 };
+    uint8_t frameData[] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05,
+                           0x10, 0x11, 0x12, 0x13, 0x14, 0x15,
+                           0x20, 0x21, 0x22, 0x23, 0x24, 0x25,
+                           0x30, 0x31, 0x32, 0x33, 0x34, 0x35,
+                           0x40, 0x41};
+    VP8PacketizerContext_t ctx = {0};
     VP8Frame_t frame;
     VP8Packet_t pkt;
-    uint8_t payloadDescFirstPkt[] = { 0xB0, 0x80, 0x1A };
-    uint8_t payloadDesc[] = { 0xA0, 0x80, 0x1A };
+    uint8_t payloadDescFirstPkt[] = {0xB0, 0x80, 0x1A};
+    uint8_t payloadDesc[] = {0xA0, 0x80, 0x1A};
     size_t i, frameDataIndex = 0;
+    size_t expectedPacketCount = sizeof( payloadDescFirstPkt );
 
     memset( &( frame ),
             0,
@@ -140,7 +146,7 @@ void test_VP8_Packetizer_PictureID( void )
     frame.frameProperties |= VP8_FRAME_PROP_NON_REF_FRAME;
     frame.frameProperties |= VP8_FRAME_PROP_PICTURE_ID_PRESENT;
     frame.pictureId = 0x1A;
-    frame.pFrameData = &( frameData[ 0 ] );
+    frame.pFrameData = &( frameData[0] );
     frame.frameDataLength = sizeof( frameData );
 
     result = VP8Packetizer_Init( &( ctx ),
@@ -149,44 +155,49 @@ void test_VP8_Packetizer_PictureID( void )
     TEST_ASSERT_EQUAL( VP8_RESULT_OK,
                        result );
 
-    pkt.pPacketData = &( packetBuffer[ 0 ] );
+    pkt.pPacketData = &( packetBuffer[0] );
     pkt.packetDataLength = PACKET_BUFFER_LENGTH;
 
-    result = VP8Packetizer_GetPacket( &( ctx ),
-                                      &( pkt ) );
-
-    while( result != VP8_RESULT_NO_MORE_PACKETS )
+    for(size_t packetIndex = 0; packetIndex <= expectedPacketCount; packetIndex++)
     {
-        for( i = 0; i < pkt.packetDataLength; i++ )
+        result = VP8Packetizer_GetPacket( &( ctx ),
+                                          &( pkt ) );
+
+        TEST_ASSERT_EQUAL( VP8_RESULT_OK,
+                           result );
+
+        for(i = 0; i < pkt.packetDataLength; i++)
         {
             if( i < sizeof( payloadDesc ) )
             {
                 if( frameDataIndex == 0 )
                 {
-                    TEST_ASSERT_EQUAL( payloadDescFirstPkt[ i ],
-                                       pkt.pPacketData[ i ] );
+                    TEST_ASSERT_EQUAL( payloadDescFirstPkt[i],
+                                       pkt.pPacketData[i] );
                 }
                 else
                 {
-                    TEST_ASSERT_EQUAL( payloadDesc[ i ],
-                                       pkt.pPacketData[ i ] );
+                    TEST_ASSERT_EQUAL( payloadDesc[i],
+                                       pkt.pPacketData[i] );
                 }
             }
             else
             {
-                TEST_ASSERT_EQUAL( frameData[ frameDataIndex ],
-                                   pkt.pPacketData[ i ] );
+                TEST_ASSERT_EQUAL( frameData[frameDataIndex],
+                                   pkt.pPacketData[i] );
                 frameDataIndex++;
             }
         }
 
-        pkt.pPacketData = &( packetBuffer[ 0 ] );
+        pkt.pPacketData = &( packetBuffer[0] );
         pkt.packetDataLength = PACKET_BUFFER_LENGTH;
-
-        result = VP8Packetizer_GetPacket( &( ctx ),
-                                          &( pkt ) );
-
     }
+
+    result = VP8Packetizer_GetPacket( &( ctx ),
+                                      &( pkt ) );
+
+    TEST_ASSERT_EQUAL( VP8_RESULT_NO_MORE_PACKETS,
+                       result );
 
     TEST_ASSERT_EQUAL( sizeof( frameData ),
                        frameDataIndex );
@@ -211,6 +222,7 @@ void test_VP8_Packetizer_TID( void )
     uint8_t payloadDescFirstPkt[] = { 0xB0, 0x20, 0x60 };
     uint8_t payloadDesc[] = { 0xA0, 0x20, 0x60 };
     size_t i, frameDataIndex = 0;
+    size_t expectedPacketCount = sizeof( payloadDescFirstPkt );
 
     memset( &( frame ),
             0,
@@ -228,44 +240,49 @@ void test_VP8_Packetizer_TID( void )
     TEST_ASSERT_EQUAL( VP8_RESULT_OK,
                        result );
 
-    pkt.pPacketData = &( packetBuffer[ 0 ] );
+    pkt.pPacketData = &( packetBuffer[0] );
     pkt.packetDataLength = PACKET_BUFFER_LENGTH;
 
-    result = VP8Packetizer_GetPacket( &( ctx ),
-                                      &( pkt ) );
-
-    while( result != VP8_RESULT_NO_MORE_PACKETS )
+    for(size_t packetIndex = 0; packetIndex <= expectedPacketCount; packetIndex++)
     {
-        for( i = 0; i < pkt.packetDataLength; i++ )
+        result = VP8Packetizer_GetPacket( &( ctx ),
+                                          &( pkt ) );
+
+        TEST_ASSERT_EQUAL( VP8_RESULT_OK,
+                           result );
+
+        for(i = 0; i < pkt.packetDataLength; i++)
         {
             if( i < sizeof( payloadDesc ) )
             {
                 if( frameDataIndex == 0 )
                 {
-                    TEST_ASSERT_EQUAL( payloadDescFirstPkt[ i ],
-                                       pkt.pPacketData[ i ] );
+                    TEST_ASSERT_EQUAL( payloadDescFirstPkt[i],
+                                       pkt.pPacketData[i] );
                 }
                 else
                 {
-                    TEST_ASSERT_EQUAL( payloadDesc[ i ],
-                                       pkt.pPacketData[ i ] );
+                    TEST_ASSERT_EQUAL( payloadDesc[i],
+                                       pkt.pPacketData[i] );
                 }
             }
             else
             {
-                TEST_ASSERT_EQUAL( frameData[ frameDataIndex ],
-                                   pkt.pPacketData[ i ] );
+                TEST_ASSERT_EQUAL( frameData[frameDataIndex],
+                                   pkt.pPacketData[i] );
                 frameDataIndex++;
             }
         }
 
-        pkt.pPacketData = &( packetBuffer[ 0 ] );
+        pkt.pPacketData = &( packetBuffer[0] );
         pkt.packetDataLength = PACKET_BUFFER_LENGTH;
-
-        result = VP8Packetizer_GetPacket( &( ctx ),
-                                          &( pkt ) );
-
     }
+
+    result = VP8Packetizer_GetPacket( &( ctx ),
+                                      &( pkt ) );
+
+    TEST_ASSERT_EQUAL( VP8_RESULT_NO_MORE_PACKETS,
+                       result );
 
     TEST_ASSERT_EQUAL( sizeof( frameData ),
                        frameDataIndex );
@@ -290,6 +307,7 @@ void test_VP8_Packetizer_TL0PICIDX( void )
     uint8_t payloadDescFirstPkt[] = { 0xB0, 0x40, 0xAB };
     uint8_t payloadDesc[] = { 0xA0, 0x40, 0xAB };
     size_t i, frameDataIndex = 0;
+    size_t expectedPacketCount = sizeof( payloadDescFirstPkt );
 
     memset( &( frame ),
             0,
@@ -307,44 +325,49 @@ void test_VP8_Packetizer_TL0PICIDX( void )
     TEST_ASSERT_EQUAL( VP8_RESULT_OK,
                        result );
 
-    pkt.pPacketData = &( packetBuffer[ 0 ] );
+    pkt.pPacketData = &( packetBuffer[0] );
     pkt.packetDataLength = PACKET_BUFFER_LENGTH;
 
-    result = VP8Packetizer_GetPacket( &( ctx ),
-                                      &( pkt ) );
-
-    while( result != VP8_RESULT_NO_MORE_PACKETS )
+    for(size_t packetIndex = 0; packetIndex <= expectedPacketCount; packetIndex++)
     {
-        for( i = 0; i < pkt.packetDataLength; i++ )
+        result = VP8Packetizer_GetPacket( &( ctx ),
+                                          &( pkt ) );
+
+        TEST_ASSERT_EQUAL( VP8_RESULT_OK,
+                           result );
+
+        for(i = 0; i < pkt.packetDataLength; i++)
         {
             if( i < sizeof( payloadDesc ) )
             {
                 if( frameDataIndex == 0 )
                 {
-                    TEST_ASSERT_EQUAL( payloadDescFirstPkt[ i ],
-                                       pkt.pPacketData[ i ] );
+                    TEST_ASSERT_EQUAL( payloadDescFirstPkt[i],
+                                       pkt.pPacketData[i] );
                 }
                 else
                 {
-                    TEST_ASSERT_EQUAL( payloadDesc[ i ],
-                                       pkt.pPacketData[ i ] );
+                    TEST_ASSERT_EQUAL( payloadDesc[i],
+                                       pkt.pPacketData[i] );
                 }
             }
             else
             {
-                TEST_ASSERT_EQUAL( frameData[ frameDataIndex ],
-                                   pkt.pPacketData[ i ] );
+                TEST_ASSERT_EQUAL( frameData[frameDataIndex],
+                                   pkt.pPacketData[i] );
                 frameDataIndex++;
             }
         }
 
-        pkt.pPacketData = &( packetBuffer[ 0 ] );
+        pkt.pPacketData = &( packetBuffer[0] );
         pkt.packetDataLength = PACKET_BUFFER_LENGTH;
-
-        result = VP8Packetizer_GetPacket( &( ctx ),
-                                          &( pkt ) );
-
     }
+
+    result = VP8Packetizer_GetPacket( &( ctx ),
+                                      &( pkt ) );
+
+    TEST_ASSERT_EQUAL( VP8_RESULT_NO_MORE_PACKETS,
+                       result );
 
     TEST_ASSERT_EQUAL( sizeof( frameData ),
                        frameDataIndex );
@@ -369,6 +392,7 @@ void test_VP8_Packetizer_KeyIndex( void )
     uint8_t payloadDescFirstPkt[] = { 0xB0, 0x10, 0xA};
     uint8_t payloadDesc[] = { 0xA0, 0x10, 0xA };
     size_t i, frameDataIndex = 0;
+    size_t expectedPacketCount = sizeof( payloadDescFirstPkt );
 
     memset( &frame,
             0,
@@ -389,11 +413,14 @@ void test_VP8_Packetizer_KeyIndex( void )
     pkt.pPacketData = &( packetBuffer[0] );
     pkt.packetDataLength = PACKET_BUFFER_LENGTH;
 
-    result = VP8Packetizer_GetPacket( &ctx,
-                                      &pkt );
-
-    while( result != VP8_RESULT_NO_MORE_PACKETS )
+    for(size_t packetIndex = 0; packetIndex <= expectedPacketCount; packetIndex++)
     {
+        result = VP8Packetizer_GetPacket( &( ctx ),
+                                          &( pkt ) );
+
+        TEST_ASSERT_EQUAL( VP8_RESULT_OK,
+                           result );
+
         for(i = 0; i < pkt.packetDataLength; i++)
         {
             if( i < sizeof( payloadDesc ) )
@@ -420,9 +447,13 @@ void test_VP8_Packetizer_KeyIndex( void )
         pkt.pPacketData = &( packetBuffer[0] );
         pkt.packetDataLength = PACKET_BUFFER_LENGTH;
 
-        result = VP8Packetizer_GetPacket( &ctx,
-                                          &pkt );
     }
+
+    result = VP8Packetizer_GetPacket( &( ctx ),
+                                      &( pkt ) );
+
+    TEST_ASSERT_EQUAL( VP8_RESULT_NO_MORE_PACKETS,
+                       result );
 
     TEST_ASSERT_EQUAL( sizeof( frameData ),
                        frameDataIndex );
@@ -447,6 +478,7 @@ void test_VP8_Packetizer_BaseOnly( void )
     uint8_t payloadDescFirstPkt[] = { 0xB0, 0x00, 0x10 };
     uint8_t payloadDesc[] = { 0xA0, 0x00, 0x10 };
     size_t i, frameDataIndex = 0;
+    size_t expectedPacketCount = sizeof( payloadDescFirstPkt );
 
     memset( &( frame ),
             0,
@@ -463,44 +495,50 @@ void test_VP8_Packetizer_BaseOnly( void )
     TEST_ASSERT_EQUAL( VP8_RESULT_OK,
                        result );
 
-    pkt.pPacketData = &( packetBuffer[ 0 ] );
+
+    pkt.pPacketData = &( packetBuffer[0] );
     pkt.packetDataLength = PACKET_BUFFER_LENGTH;
 
-    result = VP8Packetizer_GetPacket( &( ctx ),
-                                      &( pkt ) );
-
-    while( result != VP8_RESULT_NO_MORE_PACKETS )
+    for(size_t packetIndex = 0; packetIndex <= expectedPacketCount; packetIndex++)
     {
-        for( i = 0; i < pkt.packetDataLength; i++ )
+        result = VP8Packetizer_GetPacket( &( ctx ),
+                                          &( pkt ) );
+
+        TEST_ASSERT_EQUAL( VP8_RESULT_OK,
+                           result );
+
+        for(i = 0; i < pkt.packetDataLength; i++)
         {
             if( i < sizeof( payloadDesc ) )
             {
                 if( frameDataIndex == 0 )
                 {
-                    TEST_ASSERT_EQUAL( payloadDescFirstPkt[ i ],
-                                       pkt.pPacketData[ i ] );
+                    TEST_ASSERT_EQUAL( payloadDescFirstPkt[i],
+                                       pkt.pPacketData[i] );
                 }
                 else
                 {
-                    TEST_ASSERT_EQUAL( payloadDesc[ i ],
-                                       pkt.pPacketData[ i ] );
+                    TEST_ASSERT_EQUAL( payloadDesc[i],
+                                       pkt.pPacketData[i] );
                 }
             }
             else
             {
-                TEST_ASSERT_EQUAL( frameData[ frameDataIndex ],
-                                   pkt.pPacketData[ i ] );
+                TEST_ASSERT_EQUAL( frameData[frameDataIndex],
+                                   pkt.pPacketData[i] );
                 frameDataIndex++;
             }
         }
 
-        pkt.pPacketData = &( packetBuffer[ 0 ] );
+        pkt.pPacketData = &( packetBuffer[0] );
         pkt.packetDataLength = PACKET_BUFFER_LENGTH;
-
-        result = VP8Packetizer_GetPacket( &( ctx ),
-                                          &( pkt ) );
-
     }
+
+    result = VP8Packetizer_GetPacket( &( ctx ),
+                                      &( pkt ) );
+
+    TEST_ASSERT_EQUAL( VP8_RESULT_NO_MORE_PACKETS,
+                       result );
 
     TEST_ASSERT_EQUAL( sizeof( frameData ),
                        frameDataIndex );
@@ -525,6 +563,7 @@ void test_VP8_Packetizer_AllProperties( void )
     uint8_t payloadDescFirstPkt[] = { 0xB0, 0xF0, 0xFA, 0xCD, 0xAB, 0xBA };
     uint8_t payloadDesc[] = { 0xA0, 0xF0, 0xFA, 0xCD, 0xAB, 0xBA };
     size_t i, frameDataIndex = 0;
+    size_t expectedPacketCount = sizeof( payloadDescFirstPkt );
 
     memset( &( frame ),
             0,
@@ -549,44 +588,49 @@ void test_VP8_Packetizer_AllProperties( void )
     TEST_ASSERT_EQUAL( VP8_RESULT_OK,
                        result );
 
-    pkt.pPacketData = &( packetBuffer[ 0 ] );
+    pkt.pPacketData = &( packetBuffer[0] );
     pkt.packetDataLength = PACKET_BUFFER_LENGTH;
 
-    result = VP8Packetizer_GetPacket( &( ctx ),
-                                      &( pkt ) );
-
-    while( result != VP8_RESULT_NO_MORE_PACKETS )
+    for(size_t packetIndex = 0; packetIndex <= expectedPacketCount; packetIndex++)
     {
-        for( i = 0; i < pkt.packetDataLength; i++ )
+        result = VP8Packetizer_GetPacket( &( ctx ),
+                                          &( pkt ) );
+
+        TEST_ASSERT_EQUAL( VP8_RESULT_OK,
+                           result );
+
+        for(i = 0; i < pkt.packetDataLength; i++)
         {
             if( i < sizeof( payloadDesc ) )
             {
                 if( frameDataIndex == 0 )
                 {
-                    TEST_ASSERT_EQUAL( payloadDescFirstPkt[ i ],
-                                       pkt.pPacketData[ i ] );
+                    TEST_ASSERT_EQUAL( payloadDescFirstPkt[i],
+                                       pkt.pPacketData[i] );
                 }
                 else
                 {
-                    TEST_ASSERT_EQUAL( payloadDesc[ i ],
-                                       pkt.pPacketData[ i ] );
+                    TEST_ASSERT_EQUAL( payloadDesc[i],
+                                       pkt.pPacketData[i] );
                 }
             }
             else
             {
-                TEST_ASSERT_EQUAL( frameData[ frameDataIndex ],
-                                   pkt.pPacketData[ i ] );
+                TEST_ASSERT_EQUAL( frameData[frameDataIndex],
+                                   pkt.pPacketData[i] );
                 frameDataIndex++;
             }
         }
 
-        pkt.pPacketData = &( packetBuffer[ 0 ] );
+        pkt.pPacketData = &( packetBuffer[0] );
         pkt.packetDataLength = PACKET_BUFFER_LENGTH;
-
-        result = VP8Packetizer_GetPacket( &( ctx ),
-                                          &( pkt ) );
-
     }
+
+    result = VP8Packetizer_GetPacket( &( ctx ),
+                                      &( pkt ) );
+
+    TEST_ASSERT_EQUAL( VP8_RESULT_NO_MORE_PACKETS,
+                       result );
 
     TEST_ASSERT_EQUAL( sizeof( frameData ),
                        frameDataIndex );
@@ -770,7 +814,7 @@ void test_VP8_Depacketizer_AllProperties( void )
 
     pkt.pPacketData = &( packetData1[ 0 ] );
     pkt.packetDataLength = sizeof( packetData1 );
-   
+
     result = VP8Depacketizer_AddPacket( &( ctx ),
                                         &( pkt ) );
 
@@ -779,37 +823,37 @@ void test_VP8_Depacketizer_AllProperties( void )
 
     pkt.pPacketData = &( packetData2[ 0 ] );
     pkt.packetDataLength = sizeof( packetData2 );
-  
+
     result = VP8Depacketizer_AddPacket( &( ctx ),
                                         &( pkt ) );
-   
+
     TEST_ASSERT_EQUAL( VP8_RESULT_OK,
                        result );
 
     pkt.pPacketData = &( packetData3[ 0 ] );
     pkt.packetDataLength = sizeof( packetData3 );
-  
+
     result = VP8Depacketizer_AddPacket( &( ctx ),
                                         &( pkt ) );
- 
+
     TEST_ASSERT_EQUAL( VP8_RESULT_OK,
                        result );
 
     pkt.pPacketData = &( packetData4[ 0 ] );
     pkt.packetDataLength = sizeof( packetData4 );
- 
+
     result = VP8Depacketizer_AddPacket( &( ctx ),
                                         &( pkt ) );
- 
+
     TEST_ASSERT_EQUAL( VP8_RESULT_OK,
                        result );
 
     pkt.pPacketData = &( packetData5[ 0 ] );
     pkt.packetDataLength = sizeof( packetData5 );
-  
+
     result = VP8Depacketizer_AddPacket( &( ctx ),
                                         &( pkt ) );
-  
+
     TEST_ASSERT_EQUAL( VP8_RESULT_OK,
                        result );
 
@@ -818,25 +862,25 @@ void test_VP8_Depacketizer_AllProperties( void )
 
     result = VP8Depacketizer_AddPacket( &( ctx ),
                                         &( pkt ) );
-  
+
     TEST_ASSERT_EQUAL( VP8_RESULT_OK,
                        result );
 
     pkt.pPacketData = &( packetData7[ 0 ] );
     pkt.packetDataLength = sizeof( packetData7 );
-  
+
     result = VP8Depacketizer_AddPacket( &( ctx ),
                                         &( pkt ) );
-   
+
     TEST_ASSERT_EQUAL( VP8_RESULT_OK,
                        result );
 
     frame.pFrameData = &( frameBuffer[ 0 ] );
     frame.frameDataLength = VP8_FRAME_BUF_LEN;
-  
+
     result = VP8Depacketizer_GetFrame( &( ctx ),
                                        &( frame ) );
-   
+
     TEST_ASSERT_EQUAL( VP8_RESULT_OK,
                        result );
 
@@ -849,16 +893,16 @@ void test_VP8_Depacketizer_AllProperties( void )
 
     TEST_ASSERT_EQUAL( 0x7ACD,
                        frame.pictureId );
-  
+
     TEST_ASSERT_EQUAL( 0xAB,
                        frame.tl0PicIndex );
-   
+
     TEST_ASSERT_EQUAL( 5,
                        frame.tid );
-   
+
     TEST_ASSERT_EQUAL( 10,
                        frame.keyIndex );
-   
+
     TEST_ASSERT_EQUAL( ( VP8_FRAME_PROP_NON_REF_FRAME |
                          VP8_FRAME_PROP_PICTURE_ID_PRESENT |
                          VP8_FRAME_PROP_TL0PICIDX_PRESENT |
@@ -895,52 +939,52 @@ void test_VP8_Depacketizer_PictureID( void )
     result = VP8Depacketizer_Init( &( ctx ),
                                    &( packetsArray[ 0 ] ),
                                    VP8_PACKETS_ARR_LEN );
-   
+
     TEST_ASSERT_EQUAL( VP8_RESULT_OK,
                        result );
 
     pkt.pPacketData = &( packetData1[ 0 ] );
     pkt.packetDataLength = sizeof( packetData1 );
-   
+
     result = VP8Depacketizer_AddPacket( &( ctx ),
                                         &( pkt ) );
-    
+
     TEST_ASSERT_EQUAL( VP8_RESULT_OK,
                        result );
 
     pkt.pPacketData = &( packetData2[ 0 ] );
     pkt.packetDataLength = sizeof( packetData2 );
-    
+
     result = VP8Depacketizer_AddPacket( &( ctx ),
                                         &( pkt ) );
-    
+
     TEST_ASSERT_EQUAL( VP8_RESULT_OK,
                        result );
 
     pkt.pPacketData = &( packetData3[ 0 ] );
     pkt.packetDataLength = sizeof( packetData3 );
-    
+
     result = VP8Depacketizer_AddPacket( &( ctx ),
                                         &( pkt ) );
-    
+
     TEST_ASSERT_EQUAL( VP8_RESULT_OK,
                        result );
 
     pkt.pPacketData = &( packetData4[ 0 ] );
     pkt.packetDataLength = sizeof( packetData4 );
-    
+
     result = VP8Depacketizer_AddPacket( &( ctx ),
                                         &( pkt ) );
-    
+
     TEST_ASSERT_EQUAL( VP8_RESULT_OK,
                        result );
 
     frame.pFrameData = &( frameBuffer[ 0 ] );
     frame.frameDataLength = VP8_FRAME_BUF_LEN;
-    
+
     result = VP8Depacketizer_GetFrame( &( ctx ),
                                        &( frame ) );
-    
+
     TEST_ASSERT_EQUAL( VP8_RESULT_OK,
                        result );
 
@@ -953,7 +997,7 @@ void test_VP8_Depacketizer_PictureID( void )
 
     TEST_ASSERT_EQUAL( 0xAB,
                        frame.tl0PicIndex );
-   
+
     TEST_ASSERT_EQUAL( ( VP8_FRAME_PROP_NON_REF_FRAME |
                          VP8_FRAME_PROP_TL0PICIDX_PRESENT ),
                        frame.frameProperties );
@@ -975,11 +1019,11 @@ void test_VP8_Depacketizer_GetPacketProperties( void )
 
     pkt.pPacketData = &( packetData1[ 0 ] );
     pkt.packetDataLength = sizeof( packetData1 );
-    
+
     result = VP8Depacketizer_GetPacketProperties( pkt.pPacketData,
                                                   pkt.packetDataLength,
                                                   &properties );
-    
+
     TEST_ASSERT_EQUAL( VP8_RESULT_OK,
                        result );
 }
@@ -1003,37 +1047,37 @@ void test_VP8_Depacketizer_NoExtensions( void )
     result = VP8Depacketizer_Init( &( ctx ),
                                    &( packetsArray[0] ),
                                    VP8_PACKETS_ARR_LEN );
-    
+
     TEST_ASSERT_EQUAL( VP8_RESULT_OK,
                        result );
 
     pkt.pPacketData = &( packetData1[0] );
     pkt.packetDataLength = sizeof( packetData1 );
-    
+
     result = VP8Depacketizer_AddPacket( &( ctx ),
                                         &( pkt ) );
-   
+
     TEST_ASSERT_EQUAL( VP8_RESULT_OK,
                        result );
 
     frame.pFrameData = &( frameBuffer[0] );
     frame.frameDataLength = VP8_FRAME_BUF_LEN;
-    
+
     result = VP8Depacketizer_GetFrame( &( ctx ),
                                        &( frame ) );
-    
+
     TEST_ASSERT_EQUAL( VP8_RESULT_OK,
                        result );
 
-    TEST_ASSERT_EQUAL( sizeof( decodedFrameData ) ,
-                       frame.frameDataLength);
+    TEST_ASSERT_EQUAL( sizeof( decodedFrameData ),
+                       frame.frameDataLength );
 
     TEST_ASSERT_EQUAL_UINT8_ARRAY( &( decodedFrameData[0] ),
                                    &( frame.pFrameData[0] ),
                                    frame.frameDataLength );
 
-    TEST_ASSERT_EQUAL( VP8_FRAME_PROP_NON_REF_FRAME ,
-                       frame.frameProperties);
+    TEST_ASSERT_EQUAL( VP8_FRAME_PROP_NON_REF_FRAME,
+                       frame.frameProperties );
 }
 
 /*-----------------------------------------------------------*/
@@ -1050,21 +1094,21 @@ void test_VP8_Depacketizer_Init_BadParams( void )
     result = VP8Depacketizer_Init( NULL,
                                    &( packetsArray[ 0 ] ),
                                    VP8_PACKETS_ARR_LEN );
-    
+
     TEST_ASSERT_EQUAL( VP8_RESULT_BAD_PARAM,
                        result );
 
     result = VP8Depacketizer_Init( &( ctx ),
                                    NULL,
                                    VP8_PACKETS_ARR_LEN );
-    
+
     TEST_ASSERT_EQUAL( VP8_RESULT_BAD_PARAM,
                        result );
 
     result = VP8Depacketizer_Init( &( ctx ),
                                    &( packetsArray[ 0 ] ),
                                    0 );
-    
+
     TEST_ASSERT_EQUAL( VP8_RESULT_BAD_PARAM,
                        result );
 }
@@ -1086,31 +1130,31 @@ void test_VP8_Depacketizer_AddPacket_BadParams( void )
     result = VP8Depacketizer_Init( &( ctx ),
                                    &( packetsArray[ 0 ] ),
                                    VP8_PACKETS_ARR_LEN );
-   
+
     TEST_ASSERT_EQUAL( VP8_RESULT_OK,
                        result );
 
     pkt.pPacketData = &( packetData1[ 0 ] );
     pkt.packetDataLength = sizeof( packetData1 );
-    
+
     result = VP8Depacketizer_AddPacket( NULL,
                                         &( pkt ) );
-    
+
     TEST_ASSERT_EQUAL( VP8_RESULT_BAD_PARAM,
                        result );
 
     result = VP8Depacketizer_AddPacket( &( ctx ),
                                         NULL );
-    
+
     TEST_ASSERT_EQUAL( VP8_RESULT_BAD_PARAM,
                        result );
 
     pkt.pPacketData = &( packetData1[ 0 ] );
     pkt.packetDataLength = 0;
-   
+
     result = VP8Depacketizer_AddPacket( &( ctx ),
                                         &( pkt ) );
-    
+
     TEST_ASSERT_EQUAL( VP8_RESULT_BAD_PARAM,
                        result );
 }
@@ -1133,27 +1177,27 @@ void test_VP8_Depacketizer_AddPacket_OutOfMem( void )
     result = VP8Depacketizer_Init( &( ctx ),
                                    &( packetsArray[ 0 ] ),
                                    1 );
-    
+
     TEST_ASSERT_EQUAL( VP8_RESULT_OK,
                        result );
 
     pkt.pPacketData = &( packetData1[ 0 ] );
     pkt.packetDataLength = sizeof( packetData1 );
-    
+
     result = VP8Depacketizer_AddPacket( &( ctx ),
                                         &( pkt ) );
-    
+
     TEST_ASSERT_EQUAL( VP8_RESULT_OK,
                        result );
 
     pkt.pPacketData = &( packetData2[ 0 ] );
     pkt.packetDataLength = sizeof( packetData2 );
-    
+
     result = VP8Depacketizer_AddPacket( &( ctx ),
                                         &( pkt ) );
 
-    TEST_ASSERT_EQUAL(  VP8_RESULT_OUT_OF_MEMORY,
-                      result );
+    TEST_ASSERT_EQUAL( VP8_RESULT_OUT_OF_MEMORY,
+                       result );
 }
 
 /*-----------------------------------------------------------*/
@@ -1176,7 +1220,7 @@ void test_VP8_Depacketizer_GetFrame_BadParams( void )
     result = VP8Depacketizer_Init( &( ctx ),
                                    &( packetsArray[ 0 ] ),
                                    VP8_PACKETS_ARR_LEN );
-     
+
     TEST_ASSERT_EQUAL( VP8_RESULT_OK,
                        result );
 
@@ -1185,7 +1229,7 @@ void test_VP8_Depacketizer_GetFrame_BadParams( void )
 
     result = VP8Depacketizer_AddPacket( &( ctx ),
                                         &( pkt ) );
-    
+
     TEST_ASSERT_EQUAL( VP8_RESULT_OK,
                        result );
 
@@ -1194,7 +1238,7 @@ void test_VP8_Depacketizer_GetFrame_BadParams( void )
 
     result = VP8Depacketizer_AddPacket( &( ctx ),
                                         &( pkt ) );
-     
+
     TEST_ASSERT_EQUAL( VP8_RESULT_OK,
                        result );
 
@@ -1203,7 +1247,7 @@ void test_VP8_Depacketizer_GetFrame_BadParams( void )
 
     result = VP8Depacketizer_AddPacket( &( ctx ),
                                         &( pkt ) );
-     
+
     TEST_ASSERT_EQUAL( VP8_RESULT_OK,
                        result );
 
@@ -1262,36 +1306,36 @@ void test_VP8_Depacketizer_GetFrame_OutOfMemory( void )
     result = VP8Depacketizer_Init( &( ctx ),
                                    &( packetsArray[ 0 ] ),
                                    VP8_PACKETS_ARR_LEN );
-    
+
     TEST_ASSERT_EQUAL( VP8_RESULT_OK,
                        result );
 
     pkt.pPacketData = &( packetData1[ 0 ] );
     pkt.packetDataLength = sizeof( packetData1 );
-   
+
     result = VP8Depacketizer_AddPacket( &( ctx ),
                                         &( pkt ) );
-    
+
     TEST_ASSERT_EQUAL( VP8_RESULT_OK,
                        result );
 
     pkt.pPacketData = &( packetData2[ 0 ] );
     pkt.packetDataLength = sizeof( packetData2 );
-    
+
     result = VP8Depacketizer_AddPacket( &( ctx ),
                                         &( pkt ) );
-    
+
     TEST_ASSERT_EQUAL( VP8_RESULT_OK,
                        result );
 
     frame1.pFrameData = &( frameBuffer[ 0 ] );
     frame1.frameDataLength = sizeof( frameBuffer );
-    
+
     result = VP8Depacketizer_GetFrame( &( ctx ),
                                        &( frame1 ) );
-    
-    TEST_ASSERT_EQUAL(  VP8_RESULT_OUT_OF_MEMORY,
-                      result );
+
+    TEST_ASSERT_EQUAL( VP8_RESULT_OUT_OF_MEMORY,
+                       result );
 }
 
 /*-----------------------------------------------------------*/
@@ -1343,7 +1387,7 @@ void test_VP8_Depacketizer_GetFrame_MalPacket( void )
     result = VP8Depacketizer_GetFrame( &( ctx ),
                                        &( frame1 ) );
 
-    TEST_ASSERT_EQUAL(VP8_MALFORMED_PACKET ,
+    TEST_ASSERT_EQUAL( VP8_MALFORMED_PACKET,
                        result );
 }
 /*-----------------------------------------------------------*/
