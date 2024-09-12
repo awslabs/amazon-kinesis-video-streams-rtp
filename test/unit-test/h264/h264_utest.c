@@ -42,38 +42,37 @@ void tearDown( void )
  */
 void test_H264_Packetizer_AddNalu( void )
 {
-    uint8_t pFrame[] = { 0x00, 0x00, 0x00, 0x01, 0x09, 0x10,
-                         0x00, 0x00, 0x00, 0x01, 0x67, 0x42, 0xc0, 0x1f, 0xda,
-                         0x01, 0x40, 0x16, 0xec, 0x05,
-                         0xa8, 0x08,
-                         0x00, 0x00, 0x00, 0x01, 0x68, 0xce, 0x3c, 0x80,
-                         0x00, 0x00, 0x00, 0x01, 0x06, 0x05, 0xff, 0xff, 0xb7,
-                         0xdc, 0x45, 0xe9, 0xbd, 0xe6,
-                         0xd9, 0x48,
-                         0x00, 0x00, 0x00, 0x01, 0x65, 0x88, 0x84, 0x12, 0xff,
-                         0xff, 0xfc, 0x3d, 0x14, 0x00,
-                         0x04, 0xba, 0xeb, 0xae, 0xba,
-                         0xeb, 0xae, 0xba, 0xeb, 0xae,
-                         0xba,
-                         0x00, 0x00, 0x00, 0x01, 0x65, 0x00, 0x6e, 0x22, 0x21,
-                         0x04, 0xbf, 0xff, 0xff, 0x0f,
-                         0x45, 0x00 };
+    uint8_t pFrame[] = {0x00, 0x00, 0x00, 0x01, 0x09, 0x10,
+                        0x00, 0x00, 0x00, 0x01, 0x67, 0x42, 0xc0, 0x1f, 0xda,
+                        0x01, 0x40, 0x16, 0xec, 0x05,
+                        0xa8, 0x08,
+                        0x00, 0x00, 0x00, 0x01, 0x68, 0xce, 0x3c, 0x80,
+                        0x00, 0x00, 0x00, 0x01, 0x06, 0x05, 0xff, 0xff, 0xb7,
+                        0xdc, 0x45, 0xe9, 0xbd, 0xe6,
+                        0xd9, 0x48,
+                        0x00, 0x00, 0x00, 0x01, 0x65, 0x88, 0x84, 0x12, 0xff,
+                        0xff, 0xfc, 0x3d, 0x14, 0x00,
+                        0x04, 0xba, 0xeb, 0xae, 0xba,
+                        0xeb, 0xae, 0xba, 0xeb, 0xae,
+                        0xba,
+                        0x00, 0x00, 0x00, 0x01, 0x65, 0x00, 0x6e, 0x22, 0x21,
+                        0x04, 0xbf, 0xff, 0xff, 0x0f,
+                        0x45, 0x00};
     size_t frameLength = sizeof( pFrame );
     size_t curIndex = 0, naluStartIndex = 0, remainingLength;
     uint32_t fistStartCode = 1;
-    H264PacketizerContext_t ctx = { 0 };
+    H264PacketizerContext_t ctx = {0};
     H264Result_t result;
     H264Packet_t pkt;
-    uint8_t pktBuffer[ MAX_H264_PACKET_LENGTH ];
-    Nalu_t nalusArray[ MAX_NALUS_IN_A_FRAME ], nalu;
-    uint32_t packetNumber = 0;
-    uint32_t expectedPacketLength[] = { 2, 12, 4, 12, 12, 12, 12 };
+    uint8_t pktBuffer[MAX_H264_PACKET_LENGTH];
+    Nalu_t nalusArray[MAX_NALUS_IN_A_FRAME], nalu;
+    uint32_t expectedPacketLength[] = {2, 12, 4, 12, 12, 12, 12};
 
-    uint8_t startCode1[] = { 0x00, 0x00, 0x00, 0x01 };
-    uint8_t startCode2[] = { 0x00, 0x00, 0x01 };
+    uint8_t startCode1[] = {0x00, 0x00, 0x00, 0x01};
+    uint8_t startCode2[] = {0x00, 0x00, 0x01};
 
     result = H264Packetizer_Init( &( ctx ),
-                                  &( nalusArray[ 0 ] ),
+                                  &( nalusArray[0] ),
                                   MAX_NALUS_IN_A_FRAME );
 
     TEST_ASSERT_EQUAL( H264_RESULT_OK,
@@ -86,8 +85,8 @@ void test_H264_Packetizer_AddNalu( void )
         /* Check the presence of 4 byte start code. */
         if( remainingLength >= sizeof( startCode1 ) )
         {
-            if( memcmp( &( pFrame[ curIndex ] ),
-                        &( startCode1[ 0 ] ),
+            if( memcmp( &( pFrame[curIndex] ),
+                        &( startCode1[0] ),
                         sizeof( startCode1 ) ) == 0 )
             {
                 if( fistStartCode == 1 )
@@ -96,7 +95,7 @@ void test_H264_Packetizer_AddNalu( void )
                 }
                 else
                 {
-                    nalu.pNaluData = &( pFrame[ naluStartIndex ] );
+                    nalu.pNaluData = &( pFrame[naluStartIndex] );
                     nalu.naluDataLength = curIndex - naluStartIndex;
 
                     result = H264Packetizer_AddNalu( &( ctx ),
@@ -115,8 +114,8 @@ void test_H264_Packetizer_AddNalu( void )
         /* Check the presence of 3 byte start code. */
         if( remainingLength >= sizeof( startCode2 ) )
         {
-            if( memcmp( &( pFrame[ curIndex ] ),
-                        &( startCode2[ 0 ] ),
+            if( memcmp( &( pFrame[curIndex] ),
+                        &( startCode2[0] ),
                         sizeof( startCode2 ) ) == 0 )
             {
                 if( fistStartCode == 1 )
@@ -125,7 +124,7 @@ void test_H264_Packetizer_AddNalu( void )
                 }
                 else
                 {
-                    nalu.pNaluData = &( pFrame[ naluStartIndex ] );
+                    nalu.pNaluData = &( pFrame[naluStartIndex] );
                     nalu.naluDataLength = curIndex - naluStartIndex;
 
                     result = H264Packetizer_AddNalu( &( ctx ),
@@ -143,34 +142,37 @@ void test_H264_Packetizer_AddNalu( void )
 
     if( naluStartIndex > 0 )
     {
-        nalu.pNaluData = &( pFrame[ naluStartIndex ] );
+        nalu.pNaluData = &( pFrame[naluStartIndex] );
         nalu.naluDataLength = frameLength - naluStartIndex;
 
         result = H264Packetizer_AddNalu( &( ctx ),
                                          &( nalu ) );
     }
 
-    pkt.pPacketData = &( pktBuffer[ 0 ] );
+    pkt.pPacketData = &( pktBuffer[0] );
     pkt.packetDataLength = MAX_H264_PACKET_LENGTH;
 
     result = H264Packetizer_GetPacket( &( ctx ),
                                        &( pkt ) );
 
-
-    while( result != H264_RESULT_NO_MORE_PACKETS )
+    size_t expectedPacketCount = sizeof( expectedPacketLength ) / sizeof( uint32_t );
+    for(size_t i = 0; i < expectedPacketCount; i++)
     {
-        TEST_ASSERT_EQUAL( expectedPacketLength[ packetNumber ],
+        TEST_ASSERT_EQUAL( H264_RESULT_OK,
+                           result );
+        TEST_ASSERT_EQUAL( expectedPacketLength[i],
                            pkt.packetDataLength );
-        packetNumber += 1;
 
-        pkt.pPacketData = &( pktBuffer[ 0 ] );
+        pkt.pPacketData = &( pktBuffer[0] );
         pkt.packetDataLength = MAX_H264_PACKET_LENGTH;
 
         result = H264Packetizer_GetPacket( &( ctx ),
                                            &( pkt ) );
     }
-}
 
+    TEST_ASSERT_EQUAL( H264_RESULT_NO_MORE_PACKETS,
+                       result );
+}
 /*-----------------------------------------------------------*/
 
 /**
@@ -201,7 +203,6 @@ void test_H264_Packetizer_AddFrame( void )
     Frame_t frame;
     Nalu_t nalusArray[ MAX_NALUS_IN_A_FRAME ];
     uint8_t pktBuffer[ MAX_H264_PACKET_LENGTH ];
-    uint32_t packetNumber = 0;
     uint32_t expectedPacketLength[] = { 2, 12, 4, 12, 12, 12, 12 };
 
     result = H264Packetizer_Init( &( ctx ),
@@ -226,18 +227,23 @@ void test_H264_Packetizer_AddFrame( void )
     result = H264Packetizer_GetPacket( &( ctx ),
                                        &( pkt ) );
 
-    while( result != H264_RESULT_NO_MORE_PACKETS )
+    size_t expectedPacketCount = sizeof( expectedPacketLength ) / sizeof( uint32_t );
+    for(size_t i = 0; i < expectedPacketCount; i++)
     {
-        TEST_ASSERT_EQUAL( expectedPacketLength[ packetNumber ],
+        TEST_ASSERT_EQUAL( H264_RESULT_OK,
+                           result );
+        TEST_ASSERT_EQUAL( expectedPacketLength[i],
                            pkt.packetDataLength );
-        packetNumber += 1;
 
-        pkt.pPacketData = &( pktBuffer[ 0 ] );
+        pkt.pPacketData = &( pktBuffer[0] );
         pkt.packetDataLength = MAX_H264_PACKET_LENGTH;
 
         result = H264Packetizer_GetPacket( &( ctx ),
                                            &( pkt ) );
     }
+
+    TEST_ASSERT_EQUAL( H264_RESULT_NO_MORE_PACKETS,
+                       result );
 }
 
 /*-----------------------------------------------------------*/
@@ -270,7 +276,6 @@ void test_H264_Packetizer_AddFrame_ThreeByte( void )
     Frame_t frame;
     Nalu_t nalusArray[ MAX_NALUS_IN_A_FRAME ];
     uint8_t pktBuffer[ MAX_H264_PACKET_LENGTH ];
-    uint32_t packetNumber = 0;
     uint32_t expectedPacketLength[] = { 2, 12, 4, 12, 12, 12, 12 };
 
     result = H264Packetizer_Init( &( ctx ),
@@ -295,18 +300,23 @@ void test_H264_Packetizer_AddFrame_ThreeByte( void )
     result = H264Packetizer_GetPacket( &( ctx ),
                                        &( pkt ) );
 
-    while( result != H264_RESULT_NO_MORE_PACKETS )
+    size_t expectedPacketCount = sizeof( expectedPacketLength ) / sizeof( uint32_t );
+    for(size_t i = 0; i < expectedPacketCount; i++)
     {
-        TEST_ASSERT_EQUAL( expectedPacketLength[ packetNumber ],
+        TEST_ASSERT_EQUAL( H264_RESULT_OK,
+                           result );
+        TEST_ASSERT_EQUAL( expectedPacketLength[i],
                            pkt.packetDataLength );
-        packetNumber += 1;
 
-        pkt.pPacketData = &( pktBuffer[ 0 ] );
+        pkt.pPacketData = &( pktBuffer[0] );
         pkt.packetDataLength = MAX_H264_PACKET_LENGTH;
 
         result = H264Packetizer_GetPacket( &( ctx ),
                                            &( pkt ) );
     }
+
+    TEST_ASSERT_EQUAL( H264_RESULT_NO_MORE_PACKETS,
+                       result );
 }
 
 /*-----------------------------------------------------------*/
