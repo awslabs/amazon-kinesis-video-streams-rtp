@@ -149,30 +149,32 @@ void test_H264_Packetizer_AddNalu( void )
                                          &( nalu ) );
     }
 
+    size_t expectedPacketCount = sizeof( expectedPacketLength ) / sizeof( uint32_t );
+    for(size_t i = 0; i < expectedPacketCount; i++)
+    {
+        pkt.pPacketData = &( pktBuffer[0] );
+        pkt.packetDataLength = MAX_H264_PACKET_LENGTH;
+
+        result = H264Packetizer_GetPacket( &( ctx ),
+                                           &( pkt ) );
+
+        TEST_ASSERT_EQUAL( H264_RESULT_OK,
+                           result );
+
+        TEST_ASSERT_EQUAL( expectedPacketLength[i],
+                           pkt.packetDataLength );
+    }
+    /* After getting all content, H264Packetizer_GetPacket() returns H264_RESULT_NO_MORE_PACKETS. */
     pkt.pPacketData = &( pktBuffer[0] );
     pkt.packetDataLength = MAX_H264_PACKET_LENGTH;
 
     result = H264Packetizer_GetPacket( &( ctx ),
                                        &( pkt ) );
 
-    size_t expectedPacketCount = sizeof( expectedPacketLength ) / sizeof( uint32_t );
-    for(size_t i = 0; i < expectedPacketCount; i++)
-    {
-        TEST_ASSERT_EQUAL( H264_RESULT_OK,
-                           result );
-        TEST_ASSERT_EQUAL( expectedPacketLength[i],
-                           pkt.packetDataLength );
-
-        pkt.pPacketData = &( pktBuffer[0] );
-        pkt.packetDataLength = MAX_H264_PACKET_LENGTH;
-
-        result = H264Packetizer_GetPacket( &( ctx ),
-                                           &( pkt ) );
-    }
-
     TEST_ASSERT_EQUAL( H264_RESULT_NO_MORE_PACKETS,
                        result );
 }
+
 /*-----------------------------------------------------------*/
 
 /**
@@ -221,26 +223,27 @@ void test_H264_Packetizer_AddFrame( void )
     TEST_ASSERT_EQUAL( H264_RESULT_OK,
                        result );
 
-    pkt.pPacketData = &( pktBuffer[ 0 ] );
-    pkt.packetDataLength = MAX_H264_PACKET_LENGTH;
-
-    result = H264Packetizer_GetPacket( &( ctx ),
-                                       &( pkt ) );
-
     size_t expectedPacketCount = sizeof( expectedPacketLength ) / sizeof( uint32_t );
     for(size_t i = 0; i < expectedPacketCount; i++)
     {
-        TEST_ASSERT_EQUAL( H264_RESULT_OK,
-                           result );
-        TEST_ASSERT_EQUAL( expectedPacketLength[i],
-                           pkt.packetDataLength );
-
         pkt.pPacketData = &( pktBuffer[0] );
         pkt.packetDataLength = MAX_H264_PACKET_LENGTH;
 
         result = H264Packetizer_GetPacket( &( ctx ),
                                            &( pkt ) );
+
+        TEST_ASSERT_EQUAL( H264_RESULT_OK,
+                           result );
+
+        TEST_ASSERT_EQUAL( expectedPacketLength[i],
+                           pkt.packetDataLength );
     }
+    /* After getting all content, H264Packetizer_GetPacket() returns H264_RESULT_NO_MORE_PACKETS. */
+    pkt.pPacketData = &( pktBuffer[0] );
+    pkt.packetDataLength = MAX_H264_PACKET_LENGTH;
+
+    result = H264Packetizer_GetPacket( &( ctx ),
+                                       &( pkt ) );
 
     TEST_ASSERT_EQUAL( H264_RESULT_NO_MORE_PACKETS,
                        result );
@@ -294,26 +297,27 @@ void test_H264_Packetizer_AddFrame_ThreeByte( void )
     TEST_ASSERT_EQUAL( H264_RESULT_OK,
                        result );
 
-    pkt.pPacketData = &( pktBuffer[ 0 ] );
-    pkt.packetDataLength = MAX_H264_PACKET_LENGTH;
-
-    result = H264Packetizer_GetPacket( &( ctx ),
-                                       &( pkt ) );
-
     size_t expectedPacketCount = sizeof( expectedPacketLength ) / sizeof( uint32_t );
     for(size_t i = 0; i < expectedPacketCount; i++)
     {
-        TEST_ASSERT_EQUAL( H264_RESULT_OK,
-                           result );
-        TEST_ASSERT_EQUAL( expectedPacketLength[i],
-                           pkt.packetDataLength );
-
         pkt.pPacketData = &( pktBuffer[0] );
         pkt.packetDataLength = MAX_H264_PACKET_LENGTH;
 
         result = H264Packetizer_GetPacket( &( ctx ),
                                            &( pkt ) );
+
+        TEST_ASSERT_EQUAL( H264_RESULT_OK,
+                           result );
+
+        TEST_ASSERT_EQUAL( expectedPacketLength[i],
+                           pkt.packetDataLength );
     }
+    /* After getting all content, H264Packetizer_GetPacket() returns H264_RESULT_NO_MORE_PACKETS. */
+    pkt.pPacketData = &( pktBuffer[0] );
+    pkt.packetDataLength = MAX_H264_PACKET_LENGTH;
+
+    result = H264Packetizer_GetPacket( &( ctx ),
+                                       &( pkt ) );
 
     TEST_ASSERT_EQUAL( H264_RESULT_NO_MORE_PACKETS,
                        result );
