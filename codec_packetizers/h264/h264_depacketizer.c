@@ -248,14 +248,10 @@ H264Result_t H264Depacketizer_GetFrame( H264DepacketizerContext_t * pCtx,
         }
     }
 
-    if( pFrame != NULL )
-    {
-        pFrame->frameDataLength = currentFrameDataIndex;
-    }
-
     if( result == H264_RESULT_NO_MORE_NALUS )
     {
         result = H264_RESULT_OK;
+        pFrame->frameDataLength = currentFrameDataIndex;
     }
 
     return result;
