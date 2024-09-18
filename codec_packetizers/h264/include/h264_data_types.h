@@ -86,6 +86,41 @@
 
 /*-----------------------------------------------------------*/
 
+/*
+ * RTP payload format for STAP-A:
+ *
+ *   0                   1                   2                   3
+ *  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+ * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ * |F|NRI|  type   |                                               |
+ * +-+-+-+-+-+-+-+-+                                               |
+ * |                                                               |
+ * |             one or more aggregation units                     |
+ * |                                                               |
+ * |                               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ * |                               :...OPTIONAL RTP padding        |
+ * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *
+ * Structure of each aggregation unit:
+ *
+ *   0                   1                   2                   3
+ *  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+ * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *                 :        NAL unit size          |               |
+ * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+               |
+ * |                                                               |
+ * |                           NAL unit                            |
+ * |                                                               |
+ * |                               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ * |                               :
+ * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ */
+
+#define STAP_A_HEADER_SIZE              1
+#define STAP_A_NALU_SIZE                2
+
+/*-----------------------------------------------------------*/
+
 /* Packet properties, used in H264Depacketizer_GetPacketProperties. */
 #define H264_PACKET_PROPERTY_START_PACKET   ( 1 << 0 )
 #define H264_PACKET_PROPERTY_END_PACKET     ( 1 << 1 )
@@ -105,6 +140,7 @@ typedef enum H264Result
     H264_RESULT_NO_MORE_PACKETS,
     H264_RESULT_NO_MORE_NALUS,
     H264_RESULT_NO_MORE_FRAMES,
+    H264_RESULT_MALFORMED_PACKET,
     H264_RESULT_UNSUPPORTED_PACKET
 } H264Result_t;
 
