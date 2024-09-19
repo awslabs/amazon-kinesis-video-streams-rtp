@@ -365,8 +365,7 @@ RtpResult_t Rtp_DeSerialize( RtpContext_t * pCtx,
             pRtpPacket->pPayload = &( pSerializedPacket[ currentIndex ] );
             pRtpPacket->payloadLength = ( serializedPacketLength - currentIndex );
 
-            if( ( ( pRtpPacket->header.flags & RTP_HEADER_FLAG_PADDING ) != 0 ) &&
-                ( pRtpPacket->payloadLength > 0 ) )
+            if( ( pRtpPacket->header.flags & RTP_HEADER_FLAG_PADDING ) != 0 )
             {
                 /* From RFC3550, section 5.1: The last octet of the padding contains a count of how
                  * many padding octets should be ignored, including itself. */
