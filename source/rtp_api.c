@@ -221,17 +221,17 @@ RtpResult_t Rtp_Serialize( RtpContext_t * pCtx,
             memcpy( ( void * ) &( pBuffer[ currentIndex ] ),
                     ( const void * ) &( pRtpPacket->pPayload[ 0 ] ),
                     pRtpPacket->payloadLength );
-        }
 
-        /* From RFC3550, section 5.1: The last octet of the padding contains a count of how
-         * many padding octets should be ignored, including itself. */
-        if( paddingBytes > 0 )
-        {
-            for( i = 0; i < paddingBytes - 1; i++ )
+            /* From RFC3550, section 5.1: The last octet of the padding contains a count of how
+             * many padding octets should be ignored, including itself. */
+            if( paddingBytes > 0 )
             {
-                pBuffer[ currentIndex + pRtpPacket->payloadLength + i ] = 0;
+                for( i = 0; i < paddingBytes - 1; i++ )
+                {
+                    pBuffer[ currentIndex + pRtpPacket->payloadLength + i ] = 0;
+                }
+                pBuffer[ currentIndex + pRtpPacket->payloadLength + paddingBytes - 1 ] = paddingBytes;
             }
-            pBuffer[ currentIndex + pRtpPacket->payloadLength + paddingBytes - 1 ] = paddingBytes;
         }
     }
 
