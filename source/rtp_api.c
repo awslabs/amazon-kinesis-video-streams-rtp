@@ -75,6 +75,7 @@ static size_t CalculateSerializedPacketLength( const RtpPacket_t * pRtpPacket )
 {
     size_t headerLength = RTP_HEADER_MIN_LENGTH +
                           ( pRtpPacket->header.csrcCount * sizeof( uint32_t ) );
+    size_t paddingBytes = ( 4 - ( pRtpPacket->payloadLength % 4 ) ) % 4;
 
     if( ( pRtpPacket->header.flags & RTP_HEADER_FLAG_EXTENSION ) != 0 )
     {
@@ -83,7 +84,7 @@ static size_t CalculateSerializedPacketLength( const RtpPacket_t * pRtpPacket )
                        ( pRtpPacket->header.extension.extensionPayloadLength * sizeof( uint32_t ) );
     }
 
-    return headerLength + pRtpPacket->payloadLength;
+    return headerLength + pRtpPacket->payloadLength + paddingBytes;
 }
 
 /*-----------------------------------------------------------*/
@@ -115,6 +116,7 @@ RtpResult_t Rtp_Serialize( RtpContext_t * pCtx,
     size_t i, serializedPacketLength, currentIndex = 0;
     uint32_t firstWord, extensionHeader;
     RtpResult_t result = RTP_RESULT_OK;
+    size_t paddingBytes;
 
     if( ( pCtx == NULL ) ||
         ( pRtpPacket == NULL ) ||
@@ -143,7 +145,9 @@ RtpResult_t Rtp_Serialize( RtpContext_t * pCtx,
     {
         firstWord = ( RTP_HEADER_VERSION << RTP_HEADER_VERSION_LOCATION );
 
-        if( ( pRtpPacket->header.flags & RTP_HEADER_FLAG_PADDING ) != 0 )
+        /* Calculate if padding is needed. */
+        paddingBytes = ( 4 - ( pRtpPacket->payloadLength % 4 ) ) % 4;
+        if( paddingBytes > 0 )
         {
             firstWord |= ( 1 << RTP_HEADER_PADDING_LOCATION );
         }
@@ -217,6 +221,17 @@ RtpResult_t Rtp_Serialize( RtpContext_t * pCtx,
             memcpy( ( void * ) &( pBuffer[ currentIndex ] ),
                     ( const void * ) &( pRtpPacket->pPayload[ 0 ] ),
                     pRtpPacket->payloadLength );
+        }
+
+        /* From RFC3550, section 5.1: The last octet of the padding contains a count of how
+         * many padding octets should be ignored, including itself. */
+        if( paddingBytes > 0 )
+        {
+            for( i = 0; i < paddingBytes - 1; i++ )
+            {
+                pBuffer[ currentIndex + pRtpPacket->payloadLength + i ] = 0;
+            }
+            pBuffer[ currentIndex + pRtpPacket->payloadLength + paddingBytes - 1 ] = paddingBytes;
         }
     }
 
