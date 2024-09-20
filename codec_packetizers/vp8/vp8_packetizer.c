@@ -25,8 +25,7 @@ static size_t GeneratePayloadDescriptor( VP8Frame_t * pFrame,
     if( ( ( pFrame->frameProperties & VP8_FRAME_PROP_PICTURE_ID_PRESENT ) != 0 ) ||
         ( ( pFrame->frameProperties & VP8_FRAME_PROP_TL0PICIDX_PRESENT ) != 0 ) ||
         ( ( pFrame->frameProperties & VP8_FRAME_PROP_TID_PRESENT ) != 0 ) ||
-        ( ( pFrame->frameProperties & VP8_FRAME_PROP_KEYIDX_PRESENT ) != 0 ) ||
-        ( ( pFrame->frameProperties & VP8_FRAME_PROP_DEPENDS_ON_BASE_ONLY ) != 0 ) )
+        ( ( pFrame->frameProperties & VP8_FRAME_PROP_KEYIDX_PRESENT ) != 0 ) )
     {
         pBuffer[ VP8_PAYLOAD_DESC_HEADER_OFFSET ] |= VP8_PAYLOAD_DESC_X_BITMASK;
         pBuffer[ VP8_PAYLOAD_DESC_EXT_OFFSET ] = 0;
@@ -60,8 +59,7 @@ static size_t GeneratePayloadDescriptor( VP8Frame_t * pFrame,
         }
 
         if( ( ( pFrame->frameProperties & VP8_FRAME_PROP_TID_PRESENT ) != 0 ) ||
-            ( ( pFrame->frameProperties & VP8_FRAME_PROP_KEYIDX_PRESENT ) != 0 ) ||
-            ( ( pFrame->frameProperties & VP8_FRAME_PROP_DEPENDS_ON_BASE_ONLY ) != 0 ) )
+            ( ( pFrame->frameProperties & VP8_FRAME_PROP_KEYIDX_PRESENT ) != 0 ) )
         {
             pBuffer[ curIndex ] = 0;
 
