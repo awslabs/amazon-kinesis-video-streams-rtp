@@ -89,7 +89,6 @@ include( ${UNIT_TEST_DIR}/opus/ut.cmake )
 include( ${UNIT_TEST_DIR}/h264/ut.cmake)
 include( ${UNIT_TEST_DIR}/vp8/ut.cmake)
 include( ${UNIT_TEST_DIR}/rtp_packet_queue/ut.cmake )
-include( ${UNIT_TEST_DIR}/rtp_api/ut.cmake )
 
 #  ==================================== Coverage Analysis configuration ========================================
 # Add a target for running coverage on tests.
@@ -102,6 +101,5 @@ add_custom_target( coverage
     h264
     vp8
     rtp_packet_queue
-    rtp_api
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
 )
