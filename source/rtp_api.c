@@ -144,7 +144,6 @@ RtpResult_t Rtp_Serialize( RtpContext_t * pCtx,
     {
         firstWord = ( RTP_HEADER_VERSION << RTP_HEADER_VERSION_LOCATION );
 
-        /* Calculate if padding is needed. */
         if( ( pRtpPacket->header.flags & RTP_HEADER_FLAG_PADDING ) != 0 )
         {
             firstWord |= ( 1 << RTP_HEADER_PADDING_LOCATION );
