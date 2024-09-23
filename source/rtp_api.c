@@ -75,7 +75,6 @@ static size_t CalculateSerializedPacketLength( const RtpPacket_t * pRtpPacket )
 {
     size_t headerLength = RTP_HEADER_MIN_LENGTH +
                           ( pRtpPacket->header.csrcCount * sizeof( uint32_t ) );
-    size_t paddingBytes = ( 4 - ( pRtpPacket->payloadLength % 4 ) ) % 4;
 
     if( ( pRtpPacket->header.flags & RTP_HEADER_FLAG_EXTENSION ) != 0 )
     {
@@ -84,7 +83,7 @@ static size_t CalculateSerializedPacketLength( const RtpPacket_t * pRtpPacket )
                        ( pRtpPacket->header.extension.extensionPayloadLength * sizeof( uint32_t ) );
     }
 
-    return headerLength + pRtpPacket->payloadLength + paddingBytes;
+    return headerLength + pRtpPacket->payloadLength;
 }
 
 /*-----------------------------------------------------------*/
@@ -116,7 +115,7 @@ RtpResult_t Rtp_Serialize( RtpContext_t * pCtx,
     size_t i, serializedPacketLength, currentIndex = 0;
     uint32_t firstWord, extensionHeader;
     RtpResult_t result = RTP_RESULT_OK;
-    size_t paddingBytes;
+    uint8_t paddingByte;
 
     if( ( pCtx == NULL ) ||
         ( pRtpPacket == NULL ) ||
@@ -146,8 +145,7 @@ RtpResult_t Rtp_Serialize( RtpContext_t * pCtx,
         firstWord = ( RTP_HEADER_VERSION << RTP_HEADER_VERSION_LOCATION );
 
         /* Calculate if padding is needed. */
-        paddingBytes = ( 4 - ( pRtpPacket->payloadLength % 4 ) ) % 4;
-        if( paddingBytes > 0 )
+        if( ( pRtpPacket->header.flags & RTP_HEADER_FLAG_PADDING ) != 0 )
         {
             firstWord |= ( 1 << RTP_HEADER_PADDING_LOCATION );
         }
@@ -218,19 +216,23 @@ RtpResult_t Rtp_Serialize( RtpContext_t * pCtx,
         if( ( pRtpPacket->pPayload != NULL ) &&
             ( pRtpPacket->payloadLength > 0 ) )
         {
-            memcpy( ( void * ) &( pBuffer[ currentIndex ] ),
-                    ( const void * ) &( pRtpPacket->pPayload[ 0 ] ),
-                    pRtpPacket->payloadLength );
-
-            /* From RFC3550, section 5.1: The last octet of the padding contains a count of how
-             * many padding octets should be ignored, including itself. */
-            if( paddingBytes > 0 )
+            /* If padding is enabled, check the padding length at the end of payload. */
+            if( ( pRtpPacket->header.flags & RTP_HEADER_FLAG_PADDING ) != 0 )
             {
-                for( i = 0; i < paddingBytes - 1; i++ )
+                paddingByte = pRtpPacket->pPayload[ pRtpPacket->payloadLength - 1 ];
+                if( paddingByte > pRtpPacket->payloadLength )
                 {
-                    pBuffer[ currentIndex + pRtpPacket->payloadLength + i ] = 0;
+                    /* It doesn't make sense to have a packet that the length padding byte is larger than
+                     * the payload length. */
+                    result = RTP_RESULT_MALFORMED_PACKET;
                 }
-                pBuffer[ currentIndex + pRtpPacket->payloadLength + paddingBytes - 1 ] = paddingBytes;
+            }
+
+            if( result == RTP_RESULT_OK )
+            {
+                memcpy( ( void * ) &( pBuffer[ currentIndex ] ),
+                        ( const void * ) &( pRtpPacket->pPayload[ 0 ] ),
+                        pRtpPacket->payloadLength );
             }
         }
     }
@@ -388,6 +390,12 @@ RtpResult_t Rtp_DeSerialize( RtpContext_t * pCtx,
                 if( readByte <= pRtpPacket->payloadLength )
                 {
                     pRtpPacket->payloadLength -= readByte;
+                }
+                else
+                {
+                    /* It doesn't make sense to have a packet that the length padding byte is larger than
+                     * the payload length. */
+                    result = RTP_RESULT_MALFORMED_PACKET;
                 }
             }
         }
