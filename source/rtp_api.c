@@ -115,7 +115,7 @@ RtpResult_t Rtp_Serialize( RtpContext_t * pCtx,
     size_t i, serializedPacketLength, currentIndex = 0;
     uint32_t firstWord, extensionHeader;
     RtpResult_t result = RTP_RESULT_OK;
-    uint8_t paddingByte;
+    uint8_t numPaddingOctets;
 
     if( ( pCtx == NULL ) ||
         ( pRtpPacket == NULL ) ||
@@ -215,14 +215,17 @@ RtpResult_t Rtp_Serialize( RtpContext_t * pCtx,
         if( ( pRtpPacket->pPayload != NULL ) &&
             ( pRtpPacket->payloadLength > 0 ) )
         {
-            /* If padding is enabled, check the padding length at the end of payload. */
             if( ( pRtpPacket->header.flags & RTP_HEADER_FLAG_PADDING ) != 0 )
             {
-                paddingByte = pRtpPacket->pPayload[ pRtpPacket->payloadLength - 1 ];
-                if( paddingByte > pRtpPacket->payloadLength )
+                /* From RFC3550, section 5.1: The last octet of the padding
+                 * contains a count of how many padding octets should be
+                 * ignored, including itself. */
+                numPaddingOctets = pRtpPacket->pPayload[ pRtpPacket->payloadLength - 1 ];
+
+                if( numPaddingOctets > pRtpPacket->payloadLength )
                 {
-                    /* It doesn't make sense to have a packet that the length padding byte is larger than
-                     * the payload length. */
+                    /* The number of padding octets cannot be larger than the
+                     * payload length. */
                     result = RTP_RESULT_MALFORMED_PACKET;
                 }
             }
@@ -249,7 +252,7 @@ RtpResult_t Rtp_DeSerialize( RtpContext_t * pCtx,
     size_t i, currentIndex = 0;
     uint32_t firstWord, extensionHeader, word;
     RtpResult_t result = RTP_RESULT_OK;
-    uint8_t readByte;
+    uint8_t numPaddingOctets;
 
     if( ( pCtx == NULL ) ||
         ( pSerializedPacket == NULL ) ||
@@ -383,17 +386,19 @@ RtpResult_t Rtp_DeSerialize( RtpContext_t * pCtx,
 
             if( ( pRtpPacket->header.flags & RTP_HEADER_FLAG_PADDING ) != 0 )
             {
-                /* From RFC3550, section 5.1: The last octet of the padding contains a count of how
-                 * many padding octets should be ignored, including itself. */
-                readByte = pRtpPacket->pPayload[ pRtpPacket->payloadLength - 1 ];
-                if( readByte <= pRtpPacket->payloadLength )
+                /* From RFC3550, section 5.1: The last octet of the padding
+                 * contains a count of how many padding octets should be
+                 * ignored, including itself. */
+                numPaddingOctets = pRtpPacket->pPayload[ pRtpPacket->payloadLength - 1 ];
+
+                if( numPaddingOctets <= pRtpPacket->payloadLength )
                 {
-                    pRtpPacket->payloadLength -= readByte;
+                    pRtpPacket->payloadLength -= numPaddingOctets;
                 }
                 else
                 {
-                    /* It doesn't make sense to have a packet that the length padding byte is larger than
-                     * the payload length. */
+                    /* The number of padding octets cannot be larger than the
+                     * payload length. */
                     result = RTP_RESULT_MALFORMED_PACKET;
                 }
             }
