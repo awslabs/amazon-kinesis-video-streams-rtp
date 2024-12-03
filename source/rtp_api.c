@@ -115,6 +115,7 @@ RtpResult_t Rtp_Serialize( RtpContext_t * pCtx,
     size_t i, serializedPacketLength, currentIndex = 0;
     uint32_t firstWord, extensionHeader;
     RtpResult_t result = RTP_RESULT_OK;
+    uint8_t numPaddingOctets;
 
     if( ( pCtx == NULL ) ||
         ( pRtpPacket == NULL ) ||
@@ -214,9 +215,27 @@ RtpResult_t Rtp_Serialize( RtpContext_t * pCtx,
         if( ( pRtpPacket->pPayload != NULL ) &&
             ( pRtpPacket->payloadLength > 0 ) )
         {
-            memcpy( ( void * ) &( pBuffer[ currentIndex ] ),
-                    ( const void * ) &( pRtpPacket->pPayload[ 0 ] ),
-                    pRtpPacket->payloadLength );
+            if( ( pRtpPacket->header.flags & RTP_HEADER_FLAG_PADDING ) != 0 )
+            {
+                /* From RFC3550, section 5.1: The last octet of the padding
+                 * contains a count of how many padding octets should be
+                 * ignored, including itself. */
+                numPaddingOctets = pRtpPacket->pPayload[ pRtpPacket->payloadLength - 1 ];
+
+                if( numPaddingOctets > pRtpPacket->payloadLength )
+                {
+                    /* The number of padding octets cannot be larger than the
+                     * payload length. */
+                    result = RTP_RESULT_MALFORMED_PACKET;
+                }
+            }
+
+            if( result == RTP_RESULT_OK )
+            {
+                memcpy( ( void * ) &( pBuffer[ currentIndex ] ),
+                        ( const void * ) &( pRtpPacket->pPayload[ 0 ] ),
+                        pRtpPacket->payloadLength );
+            }
         }
     }
 
@@ -233,6 +252,7 @@ RtpResult_t Rtp_DeSerialize( RtpContext_t * pCtx,
     size_t i, currentIndex = 0;
     uint32_t firstWord, extensionHeader, word;
     RtpResult_t result = RTP_RESULT_OK;
+    uint8_t numPaddingOctets;
 
     if( ( pCtx == NULL ) ||
         ( pSerializedPacket == NULL ) ||
@@ -363,6 +383,25 @@ RtpResult_t Rtp_DeSerialize( RtpContext_t * pCtx,
         {
             pRtpPacket->pPayload = &( pSerializedPacket[ currentIndex ] );
             pRtpPacket->payloadLength = ( serializedPacketLength - currentIndex );
+
+            if( ( pRtpPacket->header.flags & RTP_HEADER_FLAG_PADDING ) != 0 )
+            {
+                /* From RFC3550, section 5.1: The last octet of the padding
+                 * contains a count of how many padding octets should be
+                 * ignored, including itself. */
+                numPaddingOctets = pRtpPacket->pPayload[ pRtpPacket->payloadLength - 1 ];
+
+                if( numPaddingOctets <= pRtpPacket->payloadLength )
+                {
+                    pRtpPacket->payloadLength -= numPaddingOctets;
+                }
+                else
+                {
+                    /* The number of padding octets cannot be larger than the
+                     * payload length. */
+                    result = RTP_RESULT_MALFORMED_PACKET;
+                }
+            }
         }
         else
         {

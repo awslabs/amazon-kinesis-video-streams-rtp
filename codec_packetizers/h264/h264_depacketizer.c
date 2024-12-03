@@ -10,6 +10,9 @@ static void DepacketizeSingleNaluPacket( H264DepacketizerContext_t * pCtx,
 static H264Result_t DepacketizeFragmentationUnitPacket( H264DepacketizerContext_t * pCtx,
                                                         Nalu_t * pNalu );
 
+static H264Result_t DepacketizeAggregationPacket( H264DepacketizerContext_t * pCtx,
+                                                  Nalu_t * pNalu );
+
 /*-----------------------------------------------------------*/
 
 static void DepacketizeSingleNaluPacket( H264DepacketizerContext_t * pCtx,
@@ -87,6 +90,77 @@ static H264Result_t DepacketizeFragmentationUnitPacket( H264DepacketizerContext_
 
 /*-----------------------------------------------------------*/
 
+static H264Result_t DepacketizeAggregationPacket( H264DepacketizerContext_t * pCtx,
+                                                  Nalu_t * pNalu )
+{
+    uint8_t * pCurPacketData;
+    size_t curPacketLength, naluLength;
+    H264Result_t result = H264_RESULT_OK;
+
+    pCurPacketData = pCtx->pPacketsArray[ pCtx->tailIndex ].pPacketData;
+    curPacketLength = pCtx->pPacketsArray[ pCtx->tailIndex ].packetDataLength;
+
+    /* We are just starting to parse a STAP-A packet. Skip the STAP-A header. */
+    if( pCtx->curPacketIndex == 0 )
+    {
+        pCtx->curPacketIndex += STAP_A_HEADER_SIZE;
+    }
+
+    /* Is there enough data left in the packet to read the next NALU size? */
+    if( ( pCtx->curPacketIndex + STAP_A_NALU_SIZE ) <= curPacketLength )
+    {
+        /* Read NALU length. */
+        naluLength = pCurPacketData[ pCtx->curPacketIndex ];
+        naluLength = ( naluLength << 8 ) |
+                     ( pCurPacketData[ pCtx->curPacketIndex + 1 ] );
+
+        pCtx->curPacketIndex += STAP_A_NALU_SIZE;
+
+        /* Is there enough data left in the packet to read the next NALU? */
+        if( ( pCtx->curPacketIndex + naluLength ) <= curPacketLength )
+        {
+            /* Is there enough space in the output buffer? */
+            if( naluLength <= pNalu->naluDataLength)
+            {
+                memcpy( ( void * ) &( pNalu->pNaluData[ 0 ] ),
+                        ( const void * ) &( pCurPacketData[ pCtx->curPacketIndex ] ),
+                        naluLength );
+            }
+            else
+            {
+                result = H264_RESULT_OUT_OF_MEMORY;
+            }
+
+            /* Update NALU length. */
+            pNalu->naluDataLength = naluLength;
+
+            /* Move to next Nalu in the next call to H264Depacketizer_GetNalu. */
+            pCtx->curPacketIndex += naluLength;
+        }
+        else
+        {
+            result = H264_RESULT_MALFORMED_PACKET;
+
+            /* Still move the curPacketIndex so that we move to the next packet
+             * at the end of this function. */
+            pCtx->curPacketIndex += naluLength;
+        }
+    }
+
+    /* If we do not have enough data left in this packet, move to the next
+     * packet in the next call to H264Depacketizer_GetNalu. */
+    if( ( pCtx->curPacketIndex + STAP_A_NALU_SIZE ) > curPacketLength )
+    {
+        pCtx->curPacketIndex = 0;
+        pCtx->tailIndex += 1;
+        pCtx->packetCount -= 1;
+    }
+
+    return result;
+}
+
+/*-----------------------------------------------------------*/
+
 H264Result_t H264Depacketizer_Init( H264DepacketizerContext_t * pCtx,
                                     H264Packet_t * pPacketsArray,
                                     size_t packetsArrayLength )
@@ -108,6 +182,7 @@ H264Result_t H264Depacketizer_Init( H264DepacketizerContext_t * pCtx,
         pCtx->headIndex = 0;
         pCtx->tailIndex = 0;
         pCtx->packetCount = 0;
+        pCtx->curPacketIndex = 0;
     }
 
     return result;
@@ -182,6 +257,11 @@ H264Result_t H264Depacketizer_GetNalu( H264DepacketizerContext_t * pCtx,
         {
             result = DepacketizeFragmentationUnitPacket( pCtx,
                                                          pNalu );
+        }
+        else if( packetType == STAP_A_PACKET_TYPE )
+        {
+            result = DepacketizeAggregationPacket( pCtx,
+                                                   pNalu );
         }
         else
         {
@@ -296,6 +376,10 @@ H264Result_t H264Depacketizer_GetPacketProperties( const uint8_t * pPacketData,
             {
                 *pProperties |= H264_PACKET_PROPERTY_END_PACKET;
             }
+        }
+        else if( packetType == STAP_A_PACKET_TYPE )
+        {
+            *pProperties = H264_PACKET_PROPERTY_START_PACKET;
         }
         else
         {

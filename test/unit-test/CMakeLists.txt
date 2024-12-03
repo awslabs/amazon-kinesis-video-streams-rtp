@@ -64,7 +64,7 @@ include( cmock_build.cmake )
 
 # Check if the CMock source directory exists, and if not present, clone the submodule
 # if BUILD_CLONE_SUBMODULES configuration is enabled.
-if( NOT EXISTS ${CMOCK_DIR}/source )
+if( NOT EXISTS ${CMOCK_DIR}/src )
     # Attempt to clone CMock.
     if( ${BUILD_CLONE_SUBMODULES} )
         clone_cmock()
@@ -86,9 +86,10 @@ include( ${MODULE_ROOT_DIR}/test/unit-test/cmock/create_test.cmake )
 # Include unit-test build configuration.
 include( ${UNIT_TEST_DIR}/g711/ut.cmake )
 include( ${UNIT_TEST_DIR}/opus/ut.cmake )
-include( ${UNIT_TEST_DIR}/h264/ut.cmake)
-include( ${UNIT_TEST_DIR}/vp8/ut.cmake)
+include( ${UNIT_TEST_DIR}/h264/ut.cmake )
+include( ${UNIT_TEST_DIR}/vp8/ut.cmake )
 include( ${UNIT_TEST_DIR}/rtp_packet_queue/ut.cmake )
+include( ${UNIT_TEST_DIR}/rtp_api/ut.cmake )
 
 #  ==================================== Coverage Analysis configuration ========================================
 # Add a target for running coverage on tests.
@@ -101,5 +102,6 @@ add_custom_target( coverage
     h264
     vp8
     rtp_packet_queue
+    rtp_api
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
 )

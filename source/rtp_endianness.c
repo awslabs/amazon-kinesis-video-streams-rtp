@@ -10,7 +10,7 @@
 /*-----------------------------------------------------------*/
 
 static void RtpWriteUint32Swap( uint8_t * pDst,
-                         uint32_t val )
+                                uint32_t val )
 {
     *( ( uint32_t * )( pDst ) ) = SWAP_BYTES_32( val );
 }
@@ -25,7 +25,7 @@ static uint32_t RtpReadUint32Swap( const uint8_t * pSrc )
 /*-----------------------------------------------------------*/
 
 static void RtpWriteUint32NoSwap( uint8_t * pDst,
-                           uint32_t val )
+                                  uint32_t val )
 {
     *( ( uint32_t * )( pDst ) ) = ( val );
 }

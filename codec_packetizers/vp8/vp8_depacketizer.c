@@ -164,7 +164,7 @@ VP8Result_t VP8Depacketizer_GetFrame( VP8DepacketizerContext_t * pCtx,
         result = VP8_RESULT_BAD_PARAM;
     }
 
-    for( i = 0; ( i < pCtx->packetCount ) && ( result == VP8_RESULT_OK ); i++ )
+    for( i = 0; ( result == VP8_RESULT_OK ) && ( i < pCtx->packetCount ) ; i++ )
     {
         pPacket = &( pCtx->pPacketsArray[ i ] );
 
