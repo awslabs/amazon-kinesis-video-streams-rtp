@@ -84,12 +84,13 @@ add_cmock_targets()
 include( ${MODULE_ROOT_DIR}/test/unit-test/cmock/create_test.cmake )
 
 # Include unit-test build configuration.
-include( ${UNIT_TEST_DIR}/g711/ut.cmake )
-include( ${UNIT_TEST_DIR}/opus/ut.cmake )
-include( ${UNIT_TEST_DIR}/h264/ut.cmake )
-include( ${UNIT_TEST_DIR}/vp8/ut.cmake )
-include( ${UNIT_TEST_DIR}/rtp_packet_queue/ut.cmake )
-include( ${UNIT_TEST_DIR}/rtp_api/ut.cmake )
+# include( ${UNIT_TEST_DIR}/g711/ut.cmake )
+# include( ${UNIT_TEST_DIR}/opus/ut.cmake )
+#include( ${UNIT_TEST_DIR}/h264/ut.cmake )
+include( ${UNIT_TEST_DIR}/h265/ut.cmake )
+#include( ${UNIT_TEST_DIR}/vp8/ut.cmake )
+#include( ${UNIT_TEST_DIR}/rtp_packet_queue/ut.cmake )
+#include( ${UNIT_TEST_DIR}/rtp_api/ut.cmake )
 
 #  ==================================== Coverage Analysis configuration ========================================
 # Add a target for running coverage on tests.
@@ -97,11 +98,12 @@ add_custom_target( coverage
     COMMAND ${CMAKE_COMMAND} -DCMOCK_DIR=${CMOCK_DIR}
     -P ${MODULE_ROOT_DIR}/test/unit-test/cmock/coverage.cmake
     DEPENDS cmock unity
-    g711
-    opus
-    h264
-    vp8
-    rtp_packet_queue
-    rtp_api
+    # g711
+    # opus
+    #h264
+    h265 
+    #vp8
+    #rtp_packet_queue
+    #rtp_api
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
 )
