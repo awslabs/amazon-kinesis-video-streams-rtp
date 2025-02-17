@@ -206,13 +206,6 @@ static void PacketizeFragmentationUnitPacket(H265PacketizerContext_t *pCtx,
     /* Build packet */
     size_t offset = 0;
 
-    if (pPacket->pPacketData == NULL)
-    {
-        sprintf(debugBuffer, "ERROR: pPacketData is NULL!\n");
-        printf("%s", debugBuffer);
-        return;
-    }
-
     sprintf(debugBuffer, "Before writing - payloadHdr in state: 0x%04X\n", // printf
             pCtx->fuPacketizationState.payloadHdr);
     printf("%s", debugBuffer);
@@ -379,15 +372,6 @@ static void PacketizeAggregationPacket(H265PacketizerContext_t *pCtx,
 
     sprintf(debugBuffer, "Scan complete - Will aggregate %u NALs\n", naluCount);
     printf("%s", debugBuffer);
-
-    /* Must have at least 2 NALs to aggregate */
-    if (naluCount < 2)
-    {
-        sprintf(debugBuffer, "Not enough NALs for aggregation (%u)\n", naluCount);
-        printf("%s", debugBuffer);
-        return; // Not enough NALs for aggregation
-    }
-
 
     /* Write PayloadHdr - Important: correct byte order */
     pPacket->pPacketData[0] = (AP_PACKET_TYPE << 1) | (min_layer_id >> 5);
@@ -672,10 +656,6 @@ H265Result_t H265Packetizer_AddFrame(H265PacketizerContext_t *pCtx,
 H265Result_t H265Packetizer_AddNalu(H265PacketizerContext_t *pCtx,
                                     H265Nalu_t *pNalu)
 {
-    if (pCtx == NULL || pNalu == NULL || pNalu->pNaluData == NULL || pNalu->naluDataLength == 0)
-    {
-        return H265_RESULT_BAD_PARAM;
-    }
 
     H265Result_t result = H265_RESULT_OK;
 

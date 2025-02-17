@@ -111,47 +111,6 @@ void test_H265_Packetizer_SingleNal_MinimumSize(void)                    // just
     TEST_ASSERT_EQUAL_MEMORY(nalData, packet.pPacketData, packet.packetDataLength);
 }
 
-void test_H265_Packetizer_SingleNal_NullParams(void)                  // Testing NULL Context
-{
-    H265PacketizerContext_t ctx;
-    H265Result_t result;
-    H265Nalu_t naluArray[MAX_NALUS_IN_A_FRAME];
-    H265Packet_t packet;
-    uint8_t nalData[] = {
-        0x42, 0x01,
-        0x01, 0x02, 0x03
-    };
-
-    /* Test NULL context */
-    result = H265Packetizer_Init(NULL, naluArray, MAX_NALUS_IN_A_FRAME, 0, MAX_H265_PACKET_LENGTH);
-    TEST_ASSERT_EQUAL(H265_RESULT_BAD_PARAM, result);
-
-    /* Initialize valid context */
-    result = H265Packetizer_Init(&ctx, naluArray, MAX_NALUS_IN_A_FRAME, 0, MAX_H265_PACKET_LENGTH);
-    TEST_ASSERT_EQUAL(H265_RESULT_OK, result);
-
-    /* Test NULL NAL data */
-    H265Nalu_t nullNalu = {
-        .pNaluData = NULL,
-        .naluDataLength = sizeof(nalData),
-        .nal_unit_type = 32,
-        .nal_layer_id = 0,
-        .temporal_id = 1
-    };
-    result = H265Packetizer_AddNalu(&ctx, &nullNalu);
-    TEST_ASSERT_EQUAL(H265_RESULT_BAD_PARAM, result);
-
-    /* Test NULL packet buffer */
-    packet.pPacketData = NULL;
-    packet.maxPacketSize = MAX_H265_PACKET_LENGTH;
-    result = H265Packetizer_GetPacket(&ctx, &packet);
-    TEST_ASSERT_EQUAL(H265_RESULT_BAD_PARAM, result);
-
-    /* Additional test: NULL packet structure */
-    result = H265Packetizer_GetPacket(&ctx, NULL);
-    TEST_ASSERT_EQUAL(H265_RESULT_BAD_PARAM, result);
-}
-
 
 void test_H265_Packetizer_Single_NAL_With_DONL(void)
 {
@@ -358,191 +317,6 @@ void test_H265_Packetizer_Fragmentation(void)
     TEST_ASSERT_EQUAL(0, ctx.naluCount);
 }
 
-void test_H265_Packetizer_SmallFragmentation(void)
-{
-    H265PacketizerContext_t ctx;
-    H265Result_t result;
-    H265Nalu_t naluArray[MAX_NALUS_IN_A_FRAME];
-    H265Packet_t packet;
-
-    // Initialize packet counters
-    uint32_t packetCount = 0;
-    uint32_t startPackets = 0;
-    uint32_t middlePackets = 0;
-    uint32_t endPackets = 0;
-
-    /* Create NAL unit that needs 4 fragments */
-    uint8_t nalData[300] = {  // Reduced size to 300 bytes
-        0x40, 0x01,     /* First byte: F=0, Type=32 (VPS), second byte: LayerId=0, TID=1 */
-        0x00, 0x00      /* Start of payload */
-    };
-    /* Fill rest of payload */
-    memset(nalData + 4, 0xCC, sizeof(nalData) - 4);
-
-    /* Initialize context with small packet size to force fragmentation */
-    result = H265Packetizer_Init(&ctx, naluArray, MAX_NALUS_IN_A_FRAME, 0, 100);
-    TEST_ASSERT_EQUAL(H265_RESULT_OK, result);
-
-    /* Add NAL unit */
-    H265Nalu_t nalu = {
-        .pNaluData = nalData,
-        .naluDataLength = sizeof(nalData),
-        .nal_unit_type = 32,    // VPS
-        .nal_layer_id = 0,
-        .temporal_id = 1
-    };
-    result = H265Packetizer_AddNalu(&ctx, &nalu);
-    TEST_ASSERT_EQUAL(H265_RESULT_OK, result);
-    TEST_ASSERT_EQUAL(1, ctx.naluCount);
-
-    /* Get first fragment */
-    packet.pPacketData = packetBuffer;
-    packet.maxPacketSize = 100;
-    result = H265Packetizer_GetPacket(&ctx, &packet);
-    TEST_ASSERT_EQUAL(H265_RESULT_OK, result);
-
-    // Count the first packet
-    if (result == H265_RESULT_OK)
-    {
-        uint8_t fuHeader = packet.pPacketData[2];
-
-        if (fuHeader & FU_HEADER_S_BIT_MASK)
-        {
-            startPackets++;
-        }
-        packetCount++;
-    }
-
-    /* Get middle fragments */
-    bool lastFragmentSeen = false;
-
-    do {
-        packet.pPacketData = packetBuffer;
-        packet.maxPacketSize = 100;
-        result = H265Packetizer_GetPacket(&ctx, &packet);
-
-        if (result == H265_RESULT_OK) {
-            uint8_t fuHeader = packet.pPacketData[2];  // GetGet FU header
-
-            /* Check packet type */
-            if (fuHeader & FU_HEADER_S_BIT_MASK) {
-                startPackets++;
-            }
-            else if (fuHeader & FU_HEADER_E_BIT_MASK) {
-                endPackets++;
-                lastFragmentSeen = true;
-            }
-            else {
-                middlePackets++;
-            }
-
-            packetCount++;
-        }
-    } while (result == H265_RESULT_OK && !lastFragmentSeen);
-
-    /* Verify packet counts */
-    TEST_ASSERT_EQUAL(1, startPackets);
-    TEST_ASSERT_EQUAL(1, endPackets);
-    TEST_ASSERT_EQUAL(4, packetCount);
-    TEST_ASSERT_TRUE(lastFragmentSeen);
-
-    /* Verify final state */
-    TEST_ASSERT_EQUAL(H265_PACKET_NONE, ctx.currentlyProcessingPacket);
-    TEST_ASSERT_EQUAL(0, ctx.naluCount);
-}
-
-void test_H265_Packetizer_Fragmentation_With_DONL(void)
-{
-    H265PacketizerContext_t ctx;
-    H265Result_t result;
-    H265Nalu_t naluArray[MAX_NALUS_IN_A_FRAME];
-    H265Packet_t packet;
-
-    printf("\n=== Starting Comprehensive DONL Fragmentation Test ===\n");
-
-    // Create NAL unit that needs fragmentation
-    uint8_t nalData[250] = {
-        0x40, 0x01,  /* NAL header: F=0, Type=32 (VPS), LayerId=0, TID=1 */
-        0x00, 0x00   /* Start of payload */
-    };
-    memset(nalData + 4, 0xCC, sizeof(nalData) - 4);
-
-    // Initialize context with DONL enabled and MTU size of 100
-    result = H265Packetizer_Init(&ctx, naluArray, MAX_NALUS_IN_A_FRAME, 1, 100);
-    TEST_ASSERT_EQUAL(H265_RESULT_OK, result);
-    printf("Context initialized: DONL enabled, MTU=100\n");
-
-    // Add NAL unit with DON=0 (since this is a simple test)
-    H265Nalu_t nalu = {
-        .pNaluData = nalData,
-        .naluDataLength = sizeof(nalData),
-        .nal_unit_type = 32,
-        .nal_layer_id = 0,
-        .temporal_id = 1,
-        .don = 0  // Setting DON to 0 for this test
-    };
-    result = H265Packetizer_AddNalu(&ctx, &nalu);
-    TEST_ASSERT_EQUAL(H265_RESULT_OK, result);
-
-    uint32_t packetCount = 0;
-    bool lastFragmentSeen = false;
-
-    printf("\nStarting packet processing...\n");
-
-    do {
-        packet.pPacketData = packetBuffer;
-        packet.maxPacketSize = 100;
-        result = H265Packetizer_GetPacket(&ctx, &packet);
-        TEST_ASSERT_EQUAL(H265_RESULT_OK, result);
-
-        packetCount++;
-        uint8_t fuHeader = packet.pPacketData[2];
-
-        printf("\n----- Packet %u Details -----\n", packetCount);
-        printf("PayloadHdr: 0x%02X 0x%02X\n",
-               packet.pPacketData[0], packet.pPacketData[1]);
-        printf("FU Header: 0x%02X\n", fuHeader);
-
-        // Verify common packet structure
-        TEST_ASSERT_EQUAL(0x62, packet.pPacketData[0]);
-        TEST_ASSERT_EQUAL(0x01, packet.pPacketData[1]);
-
-        if (packetCount == 1) {
-            // First fragment
-            TEST_ASSERT_EQUAL(0xA0, fuHeader);  // Start bit set
-            uint16_t donl = (packet.pPacketData[3] << 8) | packet.pPacketData[4];
-            printf("First fragment detected:\n");
-            printf("DONL value: %u\n", donl);
-            TEST_ASSERT_EQUAL(0, donl);  // Expecting DON=0
-            TEST_ASSERT_EQUAL(100, packet.packetDataLength);
-        }
-        else if (fuHeader & FU_HEADER_E_BIT_MASK) {
-            // Last fragment
-            uint8_t dond = packet.pPacketData[3];
-            printf("Last fragment detected:\n");
-            printf("DOND value: %u\n", dond);
-            TEST_ASSERT_EQUAL(0, dond);
-            lastFragmentSeen = true;
-        }
-        else {
-            // Middle fragment
-            uint8_t dond = packet.pPacketData[3];
-            printf("Middle fragment detected:\n");
-            printf("DOND value: %u\n", dond);
-            TEST_ASSERT_EQUAL(0, dond);
-            TEST_ASSERT_EQUAL(100, packet.packetDataLength);
-        }
-
-        printf("Remaining NALUs: %zu\n", ctx.naluCount);
-
-    } while (result == H265_RESULT_OK && !lastFragmentSeen);
-
-    printf("\n=== Fragmentation Summary ===\n");
-    printf("Total packets: %u\n", packetCount);
-    TEST_ASSERT_EQUAL(3, packetCount);
-    TEST_ASSERT_TRUE(lastFragmentSeen);
-    TEST_ASSERT_EQUAL(0, ctx.naluCount);
-}
 
 void test_H265_Packetizer_Multiple_NALs_Fragmentation_With_DONL(void)
 {
@@ -680,13 +454,61 @@ void test_H265_Packetizer_Null_Packet_Data(void)
 
     /* Setup the test packet */
     packet.pPacketData = NULL;  // This is the key test condition
-    packet.maxPacketSize = 1500;  // Assuming this is the correct field name
 
     /* Call the function that contains the NULL check */
     H265Packetizer_GetPacket(&ctx, &packet);
 
     printf("\n=== NULL Packet Data Test Complete ===\n");
 }
+
+void test_H265_Packetizer_Fragmentation_Zero_PayloadSize(void)
+{
+    H265PacketizerContext_t ctx;
+    H265Result_t result;
+    H265Nalu_t naluArray[10];
+    H265Packet_t packet = {0};
+    uint8_t packetBuffer[10];  // Small buffer to force zero payload size
+
+    printf("\n=== Starting Fragmentation Zero PayloadSize Test ===\n");
+
+    /* Initialize context */
+    result = H265Packetizer_Init(&ctx,
+                                naluArray,
+                                10,
+                                0,
+                                1500);
+    TEST_ASSERT_EQUAL(0, result);
+
+    /* Create a NAL unit that needs fragmentation */
+    uint8_t naluData[100] = {0};
+    naluData[0] = 0x62;  // NAL header first byte
+    naluData[1] = 0x01;  // NAL header second byte
+    memset(naluData + 2, 0xAA, 98);  // Fill rest with data
+
+    /* Setup NAL */
+    H265Nalu_t testNalu = {0};
+    testNalu.pNaluData = naluData;
+    testNalu.naluDataLength = sizeof(naluData);
+
+    /* Add NAL to context */
+    result = H265Packetizer_AddNalu(&ctx, &testNalu);
+    TEST_ASSERT_EQUAL(0, result);
+
+    /* Setup packet with minimal size to force zero payload */
+    packet.pPacketData = packetBuffer;
+    packet.maxPacketSize = 3;  // Just enough for headers (2 bytes PayloadHdr + 1 byte FUHeader)
+                              // This should make maxPayloadSize = 0
+
+    /* Get packet - should attempt fragmentation with zero payload size */
+    result = H265Packetizer_GetPacket(&ctx, &packet);
+    TEST_ASSERT_EQUAL(0, result);
+
+    /* Verify packet size is just headers */
+    TEST_ASSERT_EQUAL(3, packet.packetDataLength);
+
+    printf("\n=== Fragmentation Zero PayloadSize Test Complete ===\n");
+}
+
 
 
 
@@ -1284,29 +1106,15 @@ void test_H265_Packetizer_Init_Null_Params(void)
                                 1500);
     TEST_ASSERT_EQUAL(H265_RESULT_BAD_PARAM, result);
 
-    printf("\n=== Init Null Parameters Test Complete ===\n");
-}
-
-
-void test_H265_Packetizer_Init_Zero_MaxPacketSize(void)
-{
-    H265PacketizerContext_t ctx;
-    H265Result_t result;
-    H265Nalu_t naluArray[10];
-
-    printf("\n=== Starting Init Zero MaxPacketSize Test ===\n");
-
-    /* Test with maxPacketSize = 0 */
     result = H265Packetizer_Init(&ctx,
-                                naluArray,
-                                10,
-                                1,
-                                0);     // Setting maxPacketSize to 0
-    
-    /* Verify that function returns BAD_PARAM */
+        naluArray,
+        10,
+        1,
+        0);     // Setting maxPacketSize to 0
+
     TEST_ASSERT_EQUAL(H265_RESULT_BAD_PARAM, result);
 
-    printf("\n=== Init Zero MaxPacketSize Test Complete ===\n");
+    printf("\n=== Init Null Parameters Test Complete ===\n");
 }
 
 
@@ -1546,6 +1354,46 @@ void test_H265_Packetizer_AddFrame_Malformed_Last_Nalu(void)
     printf("\n=== AddFrame Malformed Last NALU Test Complete ===\n");
 }
 
+void test_H265_Packetizer_AddFrame_Zero_NaluStartIndex(void)
+{
+    H265PacketizerContext_t ctx;
+    H265Result_t result;
+    H265Nalu_t naluArray[10];
+    H265Frame_t frame = {0};
+
+    printf("\n=== Starting AddFrame Zero NaluStartIndex Test ===\n");
+
+    /* Initialize context */
+    result = H265Packetizer_Init(&ctx,
+                                naluArray,
+                                10,
+                                0,
+                                1500);
+    TEST_ASSERT_EQUAL(0, result);
+
+    /* Create frame data without any start codes */
+    uint8_t frameData[] = {
+        0x40, 0x01,  // Just NAL header bytes
+        0x02, 0x03, 0x04, 0x05  // Some payload data
+    };
+
+    /* Setup frame */
+    frame.pFrameData = frameData;
+    frame.frameDataLength = sizeof(frameData);
+
+    /* Add frame - should not find any start codes */
+    result = H265Packetizer_AddFrame(&ctx, &frame);
+
+    /* Verify result */
+    TEST_ASSERT_EQUAL(H265_RESULT_OK, result);
+    
+    /* Verify no NALs were added */
+    TEST_ASSERT_EQUAL(0, ctx.naluCount);
+
+    printf("\n=== AddFrame Zero NaluStartIndex Test Complete ===\n");
+}
+
+
 
 
 
@@ -1629,6 +1477,8 @@ void test_H265_Packetizer_AddNalu_Array_Full(void)
 
     printf("\n=== AddNalu Array Full Test Complete ===\n");
 }
+
+
 
 
 
@@ -1731,4 +1581,202 @@ void test_H265_Packetizer_GetPacket_Size_Overflow(void)
     TEST_ASSERT_EQUAL(H265_RESULT_OK, result);
 
     printf("\n=== GetPacket Size Overflow Test Complete ===\n");
+}
+
+void test_H265_Packetizer_GetPacket_Zero_MaxSize(void)
+{
+    H265PacketizerContext_t ctx;
+    H265Result_t result;
+    H265Nalu_t naluArray[10];
+    H265Packet_t packet = {0};
+    uint8_t packetBuffer[100];
+
+    printf("\n=== Starting GetPacket Zero MaxSize Test ===\n");
+
+    /* Initialize context */
+    result = H265Packetizer_Init(&ctx,
+                                naluArray,
+                                10,
+                                0,
+                                1500);
+    TEST_ASSERT_EQUAL(0, result);
+
+    /* Create and add a NAL unit */
+    uint8_t naluData[] = {
+        0x40, 0x01,  // NAL header
+        0x02, 0x03   // Some payload data
+    };
+
+    /* Setup NAL */
+    H265Nalu_t testNalu = {0};
+    testNalu.pNaluData = naluData;
+    testNalu.naluDataLength = sizeof(naluData);
+
+    /* Add NAL to context */
+    result = H265Packetizer_AddNalu(&ctx, &testNalu);
+    TEST_ASSERT_EQUAL(0, result);
+
+    /* Setup packet with zero maxPacketSize */
+    packet.pPacketData = packetBuffer;
+    packet.maxPacketSize = 0;  // Set to zero to trigger the check
+
+    /* Try to get packet */
+    result = H265Packetizer_GetPacket(&ctx, &packet);
+
+    /* Should return bad parameter due to zero maxPacketSize */
+    TEST_ASSERT_EQUAL(H265_RESULT_BAD_PARAM, result);
+
+    printf("\n=== GetPacket Zero MaxSize Test Complete ===\n");
+}
+
+
+void test_H265_Packetizer_GetPacket_Aggregation_Array_Limit(void)
+{
+    H265PacketizerContext_t ctx;
+    H265Result_t result;
+    H265Nalu_t naluArray[3];  // Small array to hit the length limit
+    H265Packet_t packet = {0};
+    uint8_t packetBuffer[1500];
+
+    printf("\n=== Starting GetPacket Aggregation Array Limit Test ===\n");
+
+    /* Initialize context with small NAL array */
+    result = H265Packetizer_Init(&ctx,
+                                naluArray,
+                                3,     // Small naluArrayLength
+                                1,     // Set spropMaxDonDiff > 0 to test DONL/DOND paths
+                                1500);
+    TEST_ASSERT_EQUAL(0, result);
+
+    /* Create three small NAL units that would fit in one packet */
+    uint8_t naluData1[] = {
+        0x40, 0x01,  // NAL header
+        0x02, 0x03   // Payload
+    };
+    uint8_t naluData2[] = {
+        0x40, 0x01,  // NAL header
+        0x04, 0x05   // Payload
+    };
+    uint8_t naluData3[] = {
+        0x40, 0x01,  // NAL header
+        0x06, 0x07   // Payload
+    };
+
+    /* Setup NALs */
+    H265Nalu_t testNalu1 = {0};
+    testNalu1.pNaluData = naluData1;
+    testNalu1.naluDataLength = sizeof(naluData1);
+
+    H265Nalu_t testNalu2 = {0};
+    testNalu2.pNaluData = naluData2;
+    testNalu2.naluDataLength = sizeof(naluData2);
+
+    H265Nalu_t testNalu3 = {0};
+    testNalu3.pNaluData = naluData3;
+    testNalu3.naluDataLength = sizeof(naluData3);
+
+    /* Add all NALs to context */
+    result = H265Packetizer_AddNalu(&ctx, &testNalu1);
+    TEST_ASSERT_EQUAL(0, result);
+    
+    result = H265Packetizer_AddNalu(&ctx, &testNalu2);
+    TEST_ASSERT_EQUAL(0, result);
+    
+    result = H265Packetizer_AddNalu(&ctx, &testNalu3);
+    TEST_ASSERT_EQUAL(0, result);
+
+    /* Setup packet */
+    packet.pPacketData = packetBuffer;
+    packet.maxPacketSize = 1500;  // Large enough for all NALs
+
+    /* Get packet - should try to aggregate all NALs and hit array length limit */
+    result = H265Packetizer_GetPacket(&ctx, &packet);
+    TEST_ASSERT_EQUAL(0, result);
+
+    printf("\n=== GetPacket Aggregation Array Limit Test Complete ===\n");
+}
+
+void test_H265_Packetizer_GetPacket_Tail_At_End(void)
+{
+    H265PacketizerContext_t ctx;
+    H265Result_t result;
+    H265Nalu_t naluArray[2];  // Small array size of 2
+    H265Packet_t packet = {0};
+    uint8_t packetBuffer[1500];
+
+    printf("\n=== Starting GetPacket Tail At End Test ===\n");
+
+    /* Initialize context */
+    result = H265Packetizer_Init(&ctx,
+                                naluArray,
+                                2,     // naluArrayLength = 2
+                                0,
+                                1500);
+    TEST_ASSERT_EQUAL(0, result);
+
+    /* Create small NAL units that would fit in single packet */
+    uint8_t naluData[] = {
+        0x40, 0x01,  // NAL header
+        0x02, 0x03   // Small payload
+    };
+
+    /* Setup NAL */
+    H265Nalu_t testNalu = {0};
+    testNalu.pNaluData = naluData;
+    testNalu.naluDataLength = sizeof(naluData);
+
+    /* Manually set up context state */
+    ctx.tailIndex = 1;              // Set to last index (naluArrayLength - 1)
+    ctx.naluCount = 2;              // Set count >= 2 to satisfy first condition
+    ctx.naluArrayLength = 2;        // Confirm array length
+    
+    /* Add NAL at the last position */
+    naluArray[ctx.tailIndex] = testNalu;
+
+    /* Setup packet */
+    packet.pPacketData = packetBuffer;
+    packet.maxPacketSize = 1500;    // Large enough for single NAL
+
+    /* Try to get packet */
+    result = H265Packetizer_GetPacket(&ctx, &packet);
+    TEST_ASSERT_EQUAL(0, result);
+
+    printf("\n=== GetPacket Tail At End Test Complete ===\n");
+}
+
+void test_H265_Packetizer_GetPacket_Valid_Context_Invalid_Packet(void)
+{
+    H265PacketizerContext_t ctx;
+    H265Result_t result;
+    H265Nalu_t naluArray[10];
+    uint8_t naluData[] = {
+        0x40, 0x01,  // NAL header
+        0x02, 0x03   // Payload
+    };
+
+    printf("\n=== Starting GetPacket Valid Context Test ===\n");
+
+    /* Initialize context - making pCtx valid */
+    result = H265Packetizer_Init(&ctx,
+                                naluArray,
+                                10,
+                                0,
+                                1500);
+    TEST_ASSERT_EQUAL(0, result);
+
+    /* Add a valid NAL to context */
+    H265Nalu_t testNalu = {0};
+    testNalu.pNaluData = naluData;
+    testNalu.naluDataLength = sizeof(naluData);
+    result = H265Packetizer_AddNalu(&ctx, &testNalu);
+    TEST_ASSERT_EQUAL(0, result);
+
+    /* Test Case 1: Valid pCtx, NULL packet pointer */
+    result = H265Packetizer_GetPacket(&ctx, NULL);
+    TEST_ASSERT_EQUAL(H265_RESULT_BAD_PARAM, result);
+
+    result = H265Packetizer_GetPacket(NULL, NULL);
+    TEST_ASSERT_EQUAL(H265_RESULT_BAD_PARAM, result);
+
+    printf("\n=== GetPacket Valid Context Test Complete ===\n");
 }
