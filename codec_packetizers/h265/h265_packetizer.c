@@ -5,7 +5,6 @@
 /* API includes. */
 #include "h265_packetizer.h"
 
-
 /*-----------------------------------------------------------*/
 /*
  * Original NAL unit header:
@@ -33,7 +32,9 @@ static void PacketizeAggregationPacket(H265PacketizerContext_t *pCtx,
 static void PacketizeSingleNaluPacket(H265PacketizerContext_t *pCtx,
                                       H265Packet_t *pPacket)
 {
-    uint16_t donl = pCtx->currentDon;
+    uint16_t donl = pCtx->pNaluArray[pCtx->tailIndex].don;
+
+    printf("Processing single NAL with DON: %u\n", donl);  // Debug print
     // 1. Copy NAL header from context to output
     memcpy(&(pPacket->pPacketData[0]),
            &(pCtx->pNaluArray[pCtx->tailIndex].pNaluData[0]),
@@ -41,10 +42,13 @@ static void PacketizeSingleNaluPacket(H265PacketizerContext_t *pCtx,
 
     if (pCtx->spropMaxDonDiff > 0)
     {
-        // 2. Insert DONL after header
-        memcpy(&(pPacket->pPacketData[NALU_HEADER_SIZE]),
-               &donl,
-               DONL_FIELD_SIZE);
+
+        pPacket->pPacketData[NALU_HEADER_SIZE] = (donl >> 8) & 0xFF;     // MSB
+        pPacket->pPacketData[NALU_HEADER_SIZE + 1] = donl & 0xFF;        // LSB
+
+        printf("Writing DONL bytes: 0x%02X 0x%02X\n",                     // Debug print
+            pPacket->pPacketData[NALU_HEADER_SIZE],
+            pPacket->pPacketData[NALU_HEADER_SIZE + 1]);
 
         // 3. Copy payload from context to output (after DONL)
         memcpy(&(pPacket->pPacketData[NALU_HEADER_SIZE + DONL_FIELD_SIZE]),
@@ -94,7 +98,7 @@ static void PacketizeFragmentationUnitPacket(H265PacketizerContext_t *pCtx,
     uint8_t fuHeader = 0;
     uint8_t *pNaluData = pCtx->pNaluArray[pCtx->tailIndex].pNaluData;
 
-    char debugBuffer[100];  // Buffer to hold debug strings                                                       // for printf
+    char debugBuffer[500]; // Buffer to hold debug strings                                                       // for printf
 
     /* First fragment? */
     if (pCtx->currentlyProcessingPacket == H265_PACKET_NONE) // True for first packet
@@ -109,54 +113,57 @@ static void PacketizeFragmentationUnitPacket(H265PacketizerContext_t *pCtx,
         uint8_t origTid = pNaluData[1] & HEVC_NALU_HEADER_TID_MASK;
 
         /* Construct PayloadHdr */
-        uint16_t payloadHdr = 
-    ((origF << 7) |             // F bit in MSB of first byte
-    (FU_PACKET_TYPE << 1) |    // Type = 49
-    ((origLayerId >> 5) & 1)) & 0xFF;  // First bit of LayerId
+        uint16_t payloadHdr =
+            ((origF << 7) |          // F bit in MSB of first byte
+             (FU_PACKET_TYPE << 1) | // Type = 49
+             ((origLayerId >> 5) & 1)) &
+            0xFF; // First bit of LayerId
 
-    
-    sprintf(debugBuffer, "Initial payloadHdr: 0x%02X\n", payloadHdr);
-    printf("%s", debugBuffer);                                                // printf
+        sprintf(debugBuffer, "Initial payloadHdr: 0x%02X\n", payloadHdr);
+        printf("%s", debugBuffer); // printf
 
+        // Add second byte
+        payloadHdr = (payloadHdr << 8) |           // Shift first byte
+                     ((origLayerId & 0x1F) << 3) | // Rest of LayerId
+                     origTid;                      // TID
 
-// Add second byte
-payloadHdr = (payloadHdr << 8) |         // Shift first byte
-             ((origLayerId & 0x1F) << 3) | // Rest of LayerId
-             origTid;                    // TID
+        sprintf(debugBuffer, "Final payloadHdr: 0x%04X\n", payloadHdr);
+        printf("%s", debugBuffer);
 
+        sprintf(debugBuffer, "First byte: 0x%02X\n", (payloadHdr >> 8) & 0xFF);
+        printf("%s", debugBuffer);
 
-             sprintf(debugBuffer, "Final payloadHdr: 0x%04X\n", payloadHdr);
-    printf("%s", debugBuffer);
+        sprintf(debugBuffer, "Second byte: 0x%02X\n", payloadHdr & 0xFF);
+        printf("%s", debugBuffer); // printf
 
-    sprintf(debugBuffer, "First byte: 0x%02X\n", (payloadHdr >> 8) & 0xFF);
-    printf("%s", debugBuffer);
-
-    sprintf(debugBuffer, "Second byte: 0x%02X\n", payloadHdr & 0xFF);
-    printf("%s", debugBuffer);                                                // printf
-
-
-
-        pCtx->fuPacketizationState.payloadHdr = payloadHdr;  
+        pCtx->fuPacketizationState.payloadHdr = payloadHdr;
 
         sprintf(debugBuffer, "State payloadHdr: 0x%04X\n", pCtx->fuPacketizationState.payloadHdr);
-    printf("%s", debugBuffer);                       //printf
+        printf("%s", debugBuffer); // printf
 
         /* Skip original NAL header (2 bytes) */
         pCtx->fuPacketizationState.naluDataIndex = NALU_HEADER_SIZE;
         pCtx->fuPacketizationState.remainingNaluLength =
             pCtx->pNaluArray[pCtx->tailIndex].naluDataLength - NALU_HEADER_SIZE;
-
+        pCtx->fuPacketizationState.donl = pCtx->currentDon; // Initialize lastDon
         /* Set S bit for first fragment */
+
         fuHeader |= FU_HEADER_S_BIT_MASK;
     }
 
     /* Calculate available payload size */
     size_t headerSize = NALU_HEADER_SIZE + 1; // PayloadHdr(2) + FUHeader(1)
 
-    /* If first fragment and DONL needed, account for DONL size */
-    if ((fuHeader & FU_HEADER_S_BIT_MASK) && pCtx->spropMaxDonDiff > 0)
+    if (pCtx->spropMaxDonDiff > 0)
     {
-        headerSize += DONL_FIELD_SIZE; // Add 2 bytes for DONL
+        if (fuHeader & FU_HEADER_S_BIT_MASK)
+        {
+            headerSize += DONL_FIELD_SIZE; // 2 bytes for DONL in first fragment
+        }
+        else
+        {
+            headerSize += AP_DOND_SIZE; // 1 byte for DOND in subsequent fragments
+        }
     }
 
     /* Calculate maximum payload size for this packet */
@@ -165,9 +172,7 @@ payloadHdr = (payloadHdr << 8) |         // Shift first byte
     /* Calculate actual payload size for this fragment */
     size_t payloadSize = (pCtx->fuPacketizationState.remainingNaluLength <= maxPayloadSize) ? pCtx->fuPacketizationState.remainingNaluLength : maxPayloadSize;
 
-
-
-    /* Add debug prints HERE */                                                                                                           // printf
+    /* Add debug prints HERE */ // printf
     sprintf(debugBuffer, "\nFragment Details:\n");
     printf("%s", debugBuffer);
     sprintf(debugBuffer, "maxPayloadSize: %zu\n", maxPayloadSize);
@@ -179,73 +184,74 @@ payloadHdr = (payloadHdr << 8) |         // Shift first byte
     sprintf(debugBuffer, "naluDataIndex: %zu\n", pCtx->fuPacketizationState.naluDataIndex);
     printf("%s", debugBuffer);
 
-
-
     /* Set E bit if this is the last fragment */
-    if (pCtx->fuPacketizationState.remainingNaluLength == payloadSize)
+    if (pCtx->fuPacketizationState.remainingNaluLength <= maxPayloadSize)
     {
         fuHeader |= FU_HEADER_E_BIT_MASK;
+        sprintf(debugBuffer, "\nSetting END bit for last fragment (remaining: %zu bytes)\n",
+                pCtx->fuPacketizationState.remainingNaluLength);
+        printf("%s", debugBuffer);
     }
 
     /* Set FU type from original NAL unit */
     fuHeader |= ((pNaluData[0] >> 1) & 0x3F);
 
-
     /*
     pPacket->pPacketData:
     [PayloadHdr1][PayloadHdr2][FU Header][Payload...]
-         ↑           ↑           ↑          ↑
-      offset=0    offset=1    offset=2   offset=3
+    ↑           ↑           ↑          ↑
+    offset=0    offset=1    offset=2   offset=3
     */
-
 
     /* Build packet */
     size_t offset = 0;
 
-
-    if (pPacket->pPacketData == NULL) {
+    if (pPacket->pPacketData == NULL)
+    {
         sprintf(debugBuffer, "ERROR: pPacketData is NULL!\n");
         printf("%s", debugBuffer);
         return;
-    } 
+    }
 
-    sprintf(debugBuffer, "Before writing - payloadHdr in state: 0x%04X\n",                                           // printf
-        pCtx->fuPacketizationState.payloadHdr);
-printf("%s", debugBuffer);
+    sprintf(debugBuffer, "Before writing - payloadHdr in state: 0x%04X\n", // printf
+            pCtx->fuPacketizationState.payloadHdr);
+    printf("%s", debugBuffer);
 
+    pPacket->pPacketData[offset] = (pCtx->fuPacketizationState.payloadHdr >> 8) & 0xFF; // offset shows that in which byte we are currently in our PayloadHdr
 
-    pPacket->pPacketData[offset] = (pCtx->fuPacketizationState.payloadHdr >> 8) & 0xFF;          // offset shows that in which byte we are currently in our PayloadHdr
+    sprintf(debugBuffer, "After writing first byte: 0x%02X\n", pPacket->pPacketData[offset]); // printf
+    printf("%s", debugBuffer);
+    offset++;
 
-    sprintf(debugBuffer, "After writing first byte: 0x%02X\n", pPacket->pPacketData[offset]);                           // printf
-printf("%s", debugBuffer); 
-offset++;
+    pPacket->pPacketData[offset] = pCtx->fuPacketizationState.payloadHdr & 0xFF;
 
-
-pPacket->pPacketData[offset] = pCtx->fuPacketizationState.payloadHdr & 0xFF;
-
-sprintf(debugBuffer, "After writing second byte: 0x%02X\n", pPacket->pPacketData[offset]);                         // printf
-printf("%s", debugBuffer);
-offset++;
-
+    sprintf(debugBuffer, "After writing second byte: 0x%02X\n", pPacket->pPacketData[offset]); // printf
+    printf("%s", debugBuffer);
+    offset++;
 
     pPacket->pPacketData[offset] = fuHeader;
 
-    sprintf(debugBuffer, "After writing FU header: 0x%02X\n", pPacket->pPacketData[offset]);                                // printf
-printf("%s", debugBuffer);
-offset++;
+    sprintf(debugBuffer, "After writing FU header: 0x%02X\n", pPacket->pPacketData[offset]); // printf
+    printf("%s", debugBuffer);
+    offset++;
 
 
-
-
-
-
-
-    /* Add DONL if needed (first fragment only) */
-    if ((fuHeader & FU_HEADER_S_BIT_MASK) && pCtx->spropMaxDonDiff > 0)
+    if (pCtx->spropMaxDonDiff > 0)
     {
-        uint16_t donl = pCtx->currentDon;
-        memcpy(&pPacket->pPacketData[offset], &donl, DONL_FIELD_SIZE);
-        offset += DONL_FIELD_SIZE;
+        if (fuHeader & FU_HEADER_S_BIT_MASK)
+        {
+            /* Write DONL for first fragment */
+            uint16_t donl = pCtx->currentDon;
+            pPacket->pPacketData[offset++] = (donl >> 8) & 0xFF; // MSB
+            pPacket->pPacketData[offset++] = donl & 0xFF;        // LSB
+            pCtx->fuPacketizationState.donl = pCtx->currentDon;  // Save for DOND calculation
+        }
+        else
+        {
+            /* Write DOND for subsequent fragments */
+            uint8_t dond = 0; // DOND is always 0 for fragments of the same NAL unit
+            pPacket->pPacketData[offset++] = dond;
+        }
     }
 
     /* Copy payload */
@@ -261,9 +267,20 @@ offset++;
     pCtx->fuPacketizationState.remainingNaluLength -= payloadSize;
     pPacket->packetDataLength = offset + payloadSize;
 
+    /* Print state after updates */
+    sprintf(debugBuffer, "After state update:\n");
+    printf("%s", debugBuffer);
+
+    sprintf(debugBuffer, "Remaining length: %zu\n", pCtx->fuPacketizationState.remainingNaluLength);
+    printf("%s", debugBuffer);
+
+    sprintf(debugBuffer, "NAL data index: %zu\n", pCtx->fuPacketizationState.naluDataIndex);
+    printf("%s", debugBuffer);
+
     /* Check if this was the last fragment */
     if (pCtx->fuPacketizationState.remainingNaluLength == 0)
     {
+        printf("Processing complete - resetting state\n");
         pCtx->currentlyProcessingPacket = H265_PACKET_NONE;
         pCtx->tailIndex++;
         pCtx->naluCount--;
@@ -290,8 +307,12 @@ offset++;
 static void PacketizeAggregationPacket(H265PacketizerContext_t *pCtx,
                                        H265Packet_t *pPacket)
 {
+    char debugBuffer[200];
     size_t offset = 0;
     uint8_t naluCount = 0;
+
+    sprintf(debugBuffer, "\nStarting aggregation process\n");
+    printf("%s", debugBuffer);
 
     /* First scan phase: determine how many NALs we can aggregate and find header field values */
     uint8_t f_bit = 0;
@@ -303,6 +324,10 @@ static void PacketizeAggregationPacket(H265PacketizerContext_t *pCtx,
     size_t availableSize = pPacket->maxPacketSize;
     size_t scan_index = pCtx->tailIndex; // Start with first NAL
 
+    sprintf(debugBuffer, "Initial state - Available size: %zu, Starting index: %zu\n",
+            availableSize, scan_index);
+    printf("%s", debugBuffer);
+
     /* Scan NALs to find minimums and check size */
     while (scan_index < pCtx->naluArrayLength && pCtx->naluCount > naluCount)
     {
@@ -310,15 +335,23 @@ static void PacketizeAggregationPacket(H265PacketizerContext_t *pCtx,
         size_t needed_size = AP_NALU_LENGTH_FIELD_SIZE +                  // Size field (2)
                              pCtx->pNaluArray[scan_index].naluDataLength; // NAL data
 
+        sprintf(debugBuffer, "Scanning NAL %u - Need size: %zu\n", naluCount, needed_size);
+        printf("%s", debugBuffer);
+
         /* Add DONL/DOND size if needed */
         if (pCtx->spropMaxDonDiff > 0)
         {
             needed_size += (naluCount == 0) ? DONL_FIELD_SIZE : AP_DOND_SIZE; // DONL(2) or DOND(1)
+            sprintf(debugBuffer, "Added DONL/DOND, new needed size: %zu\n", needed_size);
+            printf("%s", debugBuffer);
         }
 
         /* Check if this NAL would fit */
         if (temp_offset + needed_size > availableSize)
         {
+            sprintf(debugBuffer, "NAL won't fit - required: %zu, available: %zu\n",
+                    temp_offset + needed_size, availableSize);
+            printf("%s", debugBuffer);
             break; // Won't fit, stop scanning
         }
 
@@ -326,9 +359,14 @@ static void PacketizeAggregationPacket(H265PacketizerContext_t *pCtx,
         uint8_t *nalu_data = pCtx->pNaluArray[scan_index].pNaluData;
         f_bit |= (nalu_data[0] & HEVC_NALU_HEADER_F_MASK);
 
-        uint8_t layer_id = (nalu_data[0] & 0x01) << 5 |
-                           (nalu_data[1] & 0xF8) >> 3;
-        uint8_t tid = nalu_data[1] & HEVC_NALU_HEADER_TID_MASK;
+        // uint8_t layer_id = (nalu_data[0] & 0x01) << 5 |
+        //                    (nalu_data[1] & 0xF8) >> 3;
+        uint8_t layer_id = pCtx->pNaluArray[scan_index].nal_layer_id;
+        // uint8_t tid = nalu_data[1] & HEVC_NALU_HEADER_TID_MASK;
+        uint8_t tid = pCtx->pNaluArray[scan_index].temporal_id;
+
+        sprintf(debugBuffer, "NAL %u - Layer ID: %u, TID: %u\n", naluCount, layer_id, tid);
+        printf("%s", debugBuffer);
 
         /* Update minimum values */
         min_layer_id = H265_MIN(min_layer_id, layer_id);
@@ -339,72 +377,98 @@ static void PacketizeAggregationPacket(H265PacketizerContext_t *pCtx,
         naluCount++;
     }
 
+    sprintf(debugBuffer, "Scan complete - Will aggregate %u NALs\n", naluCount);
+    printf("%s", debugBuffer);
+
     /* Must have at least 2 NALs to aggregate */
     if (naluCount < 2)
     {
+        sprintf(debugBuffer, "Not enough NALs for aggregation (%u)\n", naluCount);
+        printf("%s", debugBuffer);
         return; // Not enough NALs for aggregation
     }
 
-    /* Construct and write PayloadHdr */
-    uint16_t payloadHdr = f_bit |                 // F bit
-                          (AP_PACKET_TYPE << 1) | // Type 48
-                          (min_layer_id << 3) |   // Lowest LayerId
-                          min_tid;                // Lowest TID
 
-    pPacket->pPacketData[offset++] = payloadHdr & 0xFF;
-    pPacket->pPacketData[offset++] = payloadHdr >> 8;
-
-    /* Process first NAL unit */
-    if (pCtx->spropMaxDonDiff > 0)
-    {
-        /* Add DONL */
-        uint16_t donl = pCtx->currentDon;
-        memcpy(&pPacket->pPacketData[offset], &donl, DONL_FIELD_SIZE);
-        offset += DONL_FIELD_SIZE;
-    }
+    /* Write PayloadHdr - Important: correct byte order */
+    pPacket->pPacketData[0] = (AP_PACKET_TYPE << 1) | (min_layer_id >> 5);
+    pPacket->pPacketData[1] = ((min_layer_id & 0x1F) << 3) | min_tid;
+    offset = 2;
 
     /* Write first NAL size and data */
     uint16_t naluSize = pCtx->pNaluArray[pCtx->tailIndex].naluDataLength;
     pPacket->pPacketData[offset++] = (naluSize >> 8) & 0xFF;
     pPacket->pPacketData[offset++] = naluSize & 0xFF;
 
+    /* Process first NAL unit */
+    if (pCtx->spropMaxDonDiff > 0)
+    {
+        /* Add DONL */
+        uint16_t donl = pCtx->pNaluArray[pCtx->tailIndex].don;
+        pPacket->pPacketData[offset++] = (donl >> 8) & 0xFF;
+        pPacket->pPacketData[offset++] = donl & 0xFF;
+
+        sprintf(debugBuffer, "Added DONL: %u\n", donl);
+        printf("%s", debugBuffer);
+    }
+
+
+    sprintf(debugBuffer, "Writing first NAL - Size: %u, Offset: %zu\n", naluSize, offset);
+    printf("%s", debugBuffer);
+
     memcpy(&pPacket->pPacketData[offset],
            pCtx->pNaluArray[pCtx->tailIndex].pNaluData,
            naluSize);
     offset += naluSize;
 
-    uint16_t lastDon = pCtx->currentDon++;
+    uint16_t lastDon = pCtx->pNaluArray[pCtx->tailIndex].don;
     pCtx->tailIndex++;
     pCtx->naluCount--;
 
     /* Process subsequent NAL units */
     for (uint8_t i = 1; i < naluCount; i++)
     {
-        /* Add DOND if needed */
-        if (pCtx->spropMaxDonDiff > 0)
-        {
-            uint8_t dond = (uint8_t)((pCtx->currentDon - lastDon - 1) & 0xFF);
-            pPacket->pPacketData[offset++] = dond;
-            lastDon = pCtx->currentDon;
-        }
+
+        sprintf(debugBuffer, "Processing NAL %u\n", i);
+        printf("%s", debugBuffer);
 
         /* Write NAL size and data */
         naluSize = pCtx->pNaluArray[pCtx->tailIndex].naluDataLength;
         pPacket->pPacketData[offset++] = (naluSize >> 8) & 0xFF;
         pPacket->pPacketData[offset++] = naluSize & 0xFF;
 
+        /* Add DOND if needed */
+        if (pCtx->spropMaxDonDiff > 0)
+        {
+            // Calculate DOND as difference between current and last DON
+            uint16_t currentDon = pCtx->pNaluArray[pCtx->tailIndex].don;
+            uint8_t dond = currentDon - lastDon;
+            pPacket->pPacketData[offset++] = dond;
+            printf("Added DOND: %u (current DON: %u, last DON: %u)\n", 
+                   dond, currentDon, lastDon);
+            lastDon = currentDon;
+
+            sprintf(debugBuffer, "Added DOND: %u\n", dond);
+            printf("%s", debugBuffer);
+        }
+
+        sprintf(debugBuffer, "Writing NAL - Size: %u, Offset: %zu\n", naluSize, offset);
+        printf("%s", debugBuffer);
+
         memcpy(&pPacket->pPacketData[offset],
                pCtx->pNaluArray[pCtx->tailIndex].pNaluData,
                naluSize);
         offset += naluSize;
 
-        pCtx->currentDon++;
+        
         pCtx->tailIndex++;
         pCtx->naluCount--;
     }
 
     /* Set final packet length */
     pPacket->packetDataLength = offset;
+
+    sprintf(debugBuffer, "Aggregation complete - Total size: %zu\n", offset);
+    printf("%s", debugBuffer);
 }
 
 /*-----------------------------------------------------------------------------------------------------*/
@@ -415,12 +479,15 @@ H265Result_t H265Packetizer_Init(H265PacketizerContext_t *pCtx,
                                  uint8_t spropMaxDonDiff,
                                  uint16_t maxPacketSize)
 {
+    if (pCtx == NULL || pNaluArray == NULL || maxPacketSize == 0)
+    {
+        return H265_RESULT_BAD_PARAM;
+    }
+
     H265Result_t result = H265_RESULT_OK;
 
     /* Parameter validation */
-    if ((pCtx == NULL) ||
-        (pNaluArray == NULL) ||
-        (naluArrayLength == 0))
+    if (naluArrayLength == 0)
     {
         result = H265_RESULT_BAD_PARAM;
     }
@@ -605,13 +672,12 @@ H265Result_t H265Packetizer_AddFrame(H265PacketizerContext_t *pCtx,
 H265Result_t H265Packetizer_AddNalu(H265PacketizerContext_t *pCtx,
                                     H265Nalu_t *pNalu)
 {
-    H265Result_t result = H265_RESULT_OK;
-
-    /* Parameter validation */
-    if ((pCtx == NULL) || (pNalu == NULL))
+    if (pCtx == NULL || pNalu == NULL || pNalu->pNaluData == NULL || pNalu->naluDataLength == 0)
     {
         return H265_RESULT_BAD_PARAM;
     }
+
+    H265Result_t result = H265_RESULT_OK;
 
     /* Check for minimum NAL unit size (2-byte header) */
     if (pNalu->naluDataLength < NALU_HEADER_SIZE)
@@ -625,6 +691,7 @@ H265Result_t H265Packetizer_AddNalu(H265PacketizerContext_t *pCtx,
         return H265_RESULT_OUT_OF_MEMORY;
     }
 
+
     /* Store NAL unit */
     pCtx->pNaluArray[pCtx->headIndex].pNaluData = pNalu->pNaluData;
     pCtx->pNaluArray[pCtx->headIndex].naluDataLength = pNalu->naluDataLength;
@@ -633,6 +700,12 @@ H265Result_t H265Packetizer_AddNalu(H265PacketizerContext_t *pCtx,
     pCtx->pNaluArray[pCtx->headIndex].nal_unit_type = pNalu->nal_unit_type;
     pCtx->pNaluArray[pCtx->headIndex].nal_layer_id = pNalu->nal_layer_id;
     pCtx->pNaluArray[pCtx->headIndex].temporal_id = pNalu->temporal_id;
+
+    /* Add this line to copy the DON value */
+    pCtx->pNaluArray[pCtx->headIndex].don = pNalu->don;
+
+    /* Add debug print */
+    printf("Adding NAL unit with DON: %u at index: %zu\n", pNalu->don, pCtx->headIndex);
 
     /* Update indices */
     pCtx->headIndex++;
@@ -648,8 +721,20 @@ H265Result_t H265Packetizer_GetPacket(H265PacketizerContext_t *pCtx,
 {
     H265Result_t result = H265_RESULT_OK;
 
-    /* Parameter validation */
-    if ((pCtx == NULL) || (pPacket == NULL))
+    if (pCtx == NULL || pPacket == NULL || pPacket->pPacketData == NULL || pPacket->maxPacketSize == 0)
+    {
+        return H265_RESULT_BAD_PARAM;
+    }
+
+    /* Strict size validation for all packet types */
+    size_t minRequiredSize = NALU_HEADER_SIZE + 1;  // Minimum size for any packet
+    if (pCtx->spropMaxDonDiff > 0)
+    {
+        minRequiredSize += DONL_FIELD_SIZE;  // Add DONL size if needed
+    }
+
+    // Add size validation here
+    if (pPacket->maxPacketSize < minRequiredSize)
     {
         return H265_RESULT_BAD_PARAM;
     }
@@ -663,7 +748,6 @@ H265Result_t H265Packetizer_GetPacket(H265PacketizerContext_t *pCtx,
     /* Main processing */
     if (pCtx->currentlyProcessingPacket == H265_FU_PACKET)
     {
-        /* Continue ongoing fragmentation */
         PacketizeFragmentationUnitPacket(pCtx, pPacket);
     }
     else
@@ -724,10 +808,6 @@ H265Result_t H265Packetizer_GetPacket(H265PacketizerContext_t *pCtx,
                 {
                     PacketizeAggregationPacket(pCtx, pPacket);
                 }
-                else
-                {
-                    PacketizeSingleNaluPacket(pCtx, pPacket);
-                }
             }
             else
             {
@@ -743,6 +823,5 @@ H265Result_t H265Packetizer_GetPacket(H265PacketizerContext_t *pCtx,
 
     return result; // Added return statement at the end
 }
-
 
 /*-----------------------------------------------------------------------------------------------------*/

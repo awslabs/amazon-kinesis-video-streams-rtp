@@ -165,7 +165,8 @@ typedef struct H265Nalu
     size_t naluDataLength;     // size of NAL in bytes
     uint8_t nal_unit_type;     // (eg. VPS, SPS, PPS)
     uint8_t nal_layer_id;       
-    uint8_t temporal_id;        
+    uint8_t temporal_id;  
+    uint8_t don;      
 } H265Nalu_t;
 
 typedef struct H265Frame

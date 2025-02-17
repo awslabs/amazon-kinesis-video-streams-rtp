@@ -1,11 +1,10 @@
 #!/bin/bash
-
 # This script should be run from the root directory of the amazon-kinesis-video-streams-rtp repo.
 
-# if [[ ! -d source ]]; then
-#     echo "Please run this script from the root directory of the amazon-kinesis-video-streams-rtp repo."
-#     exit 1
-# fi
+if [[ ! -d source ]]; then
+    echo "Please run this script from the root directory of the amazon-kinesis-video-streams-rtp repo."
+    exit 1
+fi
 
 UNIT_TEST_DIR="test/unit-test"
 BUILD_DIR="${UNIT_TEST_DIR}/build"
