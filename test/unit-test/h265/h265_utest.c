@@ -255,8 +255,7 @@ void test_H265_Packetizer_Fragmentation(void)
         packetCount++;
     }
 
-    /* Get middle fragments */
-    bool lastFragmentSeen = false;
+    uint8_t lastFragmentSeen = 0;           // 0 = false, 1 = true
 
     do
     {
@@ -276,7 +275,7 @@ void test_H265_Packetizer_Fragmentation(void)
             else if (fuHeader & FU_HEADER_E_BIT_MASK)
             {
                 endPackets++;
-                lastFragmentSeen = true; // Set this immediately when end bit is detected
+                lastFragmentSeen = 1;             
             }
             else
             {
@@ -346,7 +345,7 @@ void test_H265_Packetizer_Multiple_NALs_Fragmentation_With_DONL(void)
 
     uint32_t packetCount = 0;
     uint16_t expectedDon = 0;
-    bool processingFirstNalu = true;
+    uint8_t processingFirstNalu = 1;              // 0 = false, 1 = true
 
     do {
         packet.pPacketData = packetBuffer;
@@ -385,7 +384,7 @@ void test_H265_Packetizer_Multiple_NALs_Fragmentation_With_DONL(void)
 
             if (fuHeader & FU_HEADER_E_BIT_MASK) {
                 if (processingFirstNalu) {
-                    processingFirstNalu = false;
+                    processingFirstNalu = 0;
                     expectedDon++;
                 }
             }
@@ -951,12 +950,20 @@ void test_H265_Packetizer_Init_Null_Params(void)
                                 1500);
     TEST_ASSERT_EQUAL(H265_RESULT_BAD_PARAM, result);
 
+    /* Test Case 4: Zero maxPacketSize */
     result = H265Packetizer_Init(&ctx,
         naluArray,
         10,
         1,
-        0);     // Setting maxPacketSize to 0
+        0);         // Setting maxPacketSize to 0
+    TEST_ASSERT_EQUAL(H265_RESULT_BAD_PARAM, result);
 
+    /* Test Case 5: spropMaxDonDiff exceeding maximum */
+    result = H265Packetizer_Init(&ctx,
+        naluArray,
+        10,
+        MAX_DON_DIFF_VALUE + 1,  // Exceeding maximum
+        1500);
     TEST_ASSERT_EQUAL(H265_RESULT_BAD_PARAM, result);
 }
 
@@ -1226,18 +1233,36 @@ void test_H265_Packetizer_AddNalu_Malformed_Packet(void)
                                 1500);
     TEST_ASSERT_EQUAL(H265_RESULT_OK, result);
 
-    /* Create a NAL unit smaller than NALU_HEADER_SIZE */
-    uint8_t smallNaluData[] = {0x40};  // Just 1 byte, definitely less than NALU_HEADER_SIZE
-    
-    /* Setup the NAL unit */
+    /* Test Case 1: NAL unit smaller than NALU_HEADER_SIZE */
+    uint8_t smallNaluData[] = {0x40};  // Just 1 byte
     testNalu.pNaluData = smallNaluData;
-    testNalu.naluDataLength = sizeof(smallNaluData);  // Length = 1
-
-    /* Try to add the malformed NAL */
+    testNalu.naluDataLength = sizeof(smallNaluData);
     result = H265Packetizer_AddNalu(&ctx, &testNalu);
-
-    /* Verify that we get malformed packet error */
     TEST_ASSERT_EQUAL(H265_RESULT_MALFORMED_PACKET, result);
+
+    /* Test Case 2: Invalid NAL unit type */
+    uint8_t validSizeData[] = {0x40, 0x01, 0x02, 0x03};
+    testNalu.pNaluData = validSizeData;
+    testNalu.naluDataLength = sizeof(validSizeData);
+    testNalu.nal_unit_type = MAX_NAL_UNIT_TYPE + 1;  // Invalid type
+    testNalu.nal_layer_id = 0;
+    testNalu.temporal_id = 0;
+    result = H265Packetizer_AddNalu(&ctx, &testNalu);
+    TEST_ASSERT_EQUAL(H265_RESULT_BAD_PARAM, result);
+
+    /* Test Case 3: Invalid layer ID */
+    testNalu.nal_unit_type = 32;  // Valid type
+    testNalu.nal_layer_id = MAX_LAYER_ID + 1;  // Invalid layer ID
+    testNalu.temporal_id = 0;
+    result = H265Packetizer_AddNalu(&ctx, &testNalu);
+    TEST_ASSERT_EQUAL(H265_RESULT_BAD_PARAM, result);
+
+    /* Test Case 4: Invalid temporal ID */
+    testNalu.nal_unit_type = 32;  // Valid type
+    testNalu.nal_layer_id = 0;    // Valid layer ID
+    testNalu.temporal_id = MAX_TEMPORAL_ID + 1;  // Invalid temporal ID
+    result = H265Packetizer_AddNalu(&ctx, &testNalu);
+    TEST_ASSERT_EQUAL(H265_RESULT_BAD_PARAM, result);
 }
 
 
@@ -1274,8 +1299,6 @@ void test_H265_Packetizer_AddNalu_Array_Full(void)
     
     /* Try to add one more NAL - should fail */
     result = H265Packetizer_AddNalu(&ctx, &testNalu);  // Third add - should fail
-    
-    /* Verify that we get out of memory error */
     TEST_ASSERT_EQUAL(H265_RESULT_OUT_OF_MEMORY, result);
 }
 

@@ -4,7 +4,6 @@
 /* Standard includes. */
 #include <stdint.h>
 #include <stddef.h>
-#include <stdbool.h>
 
 /*
  * NAL Unit (NALU) Header for H.265:
@@ -17,6 +16,12 @@
  */
 
 #define NALU_HEADER_SIZE               2
+#define MAX_DON_DIFF_VALUE    32767   // Maximum DON difference allowed (2^15 - 1, per RFC 7798)
+
+/* NAL unit header field maximum values (as per H.265/HEVC specification) */
+#define MAX_NAL_UNIT_TYPE     63    // 6 bits (0-63)
+#define MAX_LAYER_ID          63    // 6 bits (0-63)
+#define MAX_TEMPORAL_ID       7     // 3 bits (0-7)
 
 // First byte
 #define HEVC_NALU_HEADER_TYPE_MASK     0x7E    // 01111110
@@ -33,21 +38,6 @@
 #define HEVC_NALU_HEADER_TID_LOCATION       0
 
 /*-----------------------------------------------------------*/
-
-
-// H.265 NAL Unit Types (from specification)
-
-// VCL (Video Coding Layer) NAL Units
-#define HEVC_NAL_TRAIL_N        0    // Trailing picture, no reference
-#define HEVC_NAL_TRAIL_R        1    // Trailing picture, used as reference
-#define HEVC_NAL_IDR_W_RADL     19   // Instantaneous Decoding Refresh with RADL
-#define HEVC_NAL_IDR_N_LP       20   // Instantaneous Decoding Refresh
-#define HEVC_NAL_CRA_NUT        21   // Clean Random Access
-
-// Non-VCL NAL Units
-#define HEVC_NAL_VPS            32   // Video Parameter Set
-#define HEVC_NAL_SPS            33   // Sequence Parameter Set
-#define HEVC_NAL_PPS            34   // Picture Parameter Set
 
 // For RTP packetization (from RFC 7798)
 // This means NAL unit types 1-47 can be carried in single NAL unit packets

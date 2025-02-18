@@ -45,7 +45,7 @@ typedef struct H265PacketizerContext
     size_t naluCount;
     
     // Configuration
-    uint8_t spropMaxDonDiff;  // DON handling
+    uint16_t spropMaxDonDiff;  // DON handling
     uint16_t maxPacketSize;   // For fragmentation/aggregation decisions
     
     // Current state
@@ -55,14 +55,14 @@ typedef struct H265PacketizerContext
     
     // DON tracking
     uint16_t currentDon;      // Current DON value
-    bool donPresent;          // If DON fields are present
+    uint8_t donPresent;         // If DON fields are present (1=present, 0=not present)
 } H265PacketizerContext_t;
 
 /* Function declarations */
 H265Result_t H265Packetizer_Init(H265PacketizerContext_t* pCtx,
                                 H265Nalu_t* pNaluArray,
                                 size_t naluArrayLength,
-                                uint8_t spropMaxDonDiff,
+                                uint16_t spropMaxDonDiff,
                                 uint16_t maxPacketSize);
 
 H265Result_t H265Packetizer_AddFrame(H265PacketizerContext_t* pCtx,
