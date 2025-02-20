@@ -2,7 +2,7 @@
 include( ${MODULE_ROOT_DIR}/rtpFilePaths.cmake )
 
 # ====================  Define your project name (edit) ========================
-set( project_name "h265" )    # Changed from h264 to h265
+set( project_name "h265" )  
 
 message( STATUS "${project_name}" )
 
@@ -10,7 +10,7 @@ message( STATUS "${project_name}" )
 
 # List the files to mock here.
 list(APPEND mock_list
-            "${MODULE_ROOT_DIR}/codec_packetizers/h265/include/h265_data_types.h"    # Updated path for h265
+            "${MODULE_ROOT_DIR}/codec_packetizers/h265/include/h265_data_types.h"    
         )
 # List the directories your mocks need.
 list(APPEND mock_include_list
@@ -27,7 +27,7 @@ list(APPEND mock_define_list
 
 # List the files you would like to test here.
 list(APPEND real_source_files
-            ${MODULE_ROOT_DIR}/codec_packetizers/h265/h265_packetizer.c      # Updated path for h265
+            ${MODULE_ROOT_DIR}/codec_packetizers/h265/h265_packetizer.c          
         )
 # List the directories the module under test includes.
 list(APPEND real_include_directories
