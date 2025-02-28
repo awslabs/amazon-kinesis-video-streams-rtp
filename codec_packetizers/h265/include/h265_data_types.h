@@ -62,6 +62,7 @@
  * |S|E|  FuType   |
  * +---------------+
  */
+#define FU_HEADER_OFFSET            2
 #define FU_HEADER_SIZE              1
 #define TOTAL_FU_HEADER_SIZE        3       /* Total header size (NAL + FU) */
 #define DONL_FIELD_SIZE             2       /* Size of DONL field when present */
