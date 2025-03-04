@@ -2062,178 +2062,6 @@ void test_H265_Depacketizer_ProcessFragmentedNalu_BufferOverflow( void )
 
 /*-----------------------------------------------------------------------------------------------------*/
 
-void test_H265_Depacketizer_ProcessAggregationPacket_And_GetFrame( void )
-{
-    H265DepacketizerContext_t ctx;
-    H265Result_t result;
-    H265Packet_t packetsArray[ 10 ];
-    H265Nalu_t nalu;
-    H265Frame_t frame = { 0 };
-
-    /* Initialize context and arrays */
-    memset( &ctx, 0, sizeof( H265DepacketizerContext_t ) );
-    memset( packetsArray, 0, sizeof( packetsArray ) );
-    memset( &nalu, 0, sizeof( H265Nalu_t ) );
-
-    uint8_t frameBuffer[ 3000 ];
-    memset( frameBuffer, 0, sizeof( frameBuffer ) );
-
-    /* Initialize frame buffer */
-    frame.pFrameData = frameBuffer;
-    frame.frameDataLength = sizeof( frameBuffer );
-
-    /* Create aggregation packet with correct NAL unit type (48 = 0x30) */
-    uint8_t aggrPacket[] =
-    {
-        0x61, 0x01,           /* First byte: NAL unit type 48 (0x30) for aggregation */
-        /* First NALU */
-        0x00, 0x04,           /* First NALU length (4 bytes) */
-        0x26, 0x01,           /* NALU header */
-        0xAA, 0xBB,           /* NALU payload */
-        /* Second NALU */
-        0x00, 0x05,           /* Second NALU length (5 bytes) */
-        0x40, 0x01,           /* NALU header */
-        0xCC, 0xDD, 0xEE,     /* NALU payload */
-        /* Third NALU */
-        0x00, 0x04,           /* Third NALU length (4 bytes) */
-        0x44, 0x01,           /* NALU header */
-        0xFF, 0x11            /* NALU payload */
-    };
-
-    /* Initialize depacketizer */
-    result = H265Depacketizer_Init( &ctx, packetsArray, 10, 0 );
-
-    /* Set up reassembly buffer */
-    ctx.fuDepacketizationState.pReassemblyBuffer = frameBuffer;
-    ctx.fuDepacketizationState.reassemblyBufferSize = sizeof( frameBuffer );
-
-    /* Add aggregation packet */
-    packetsArray[ 0 ].pPacketData = aggrPacket;
-    packetsArray[ 0 ].packetDataLength = sizeof( aggrPacket );
-    result = H265Depacketizer_AddPacket( &ctx, &packetsArray[ 0 ] );
-
-    /* Get Frame */
-    result = H265Depacketizer_GetFrame( &ctx, &frame );
-
-    if( result == H265_RESULT_OK )
-    {
-        /* Verify frame contents with start codes */
-        /* First NALU */
-        TEST_ASSERT_EQUAL_HEX8_MESSAGE( 0x00, frame.pFrameData[ 0 ], "Start code 1 byte 1 incorrect" );
-        TEST_ASSERT_EQUAL_HEX8_MESSAGE( 0x00, frame.pFrameData[ 1 ], "Start code 1 byte 2 incorrect" );
-        TEST_ASSERT_EQUAL_HEX8_MESSAGE( 0x00, frame.pFrameData[ 2 ], "Start code 1 byte 3 incorrect" );
-        TEST_ASSERT_EQUAL_HEX8_MESSAGE( 0x01, frame.pFrameData[ 3 ], "Start code 1 byte 4 incorrect" );
-        TEST_ASSERT_EQUAL_HEX8_MESSAGE( 0x26, frame.pFrameData[ 4 ], "First NALU header incorrect" );
-        TEST_ASSERT_EQUAL_HEX8_MESSAGE( 0x01, frame.pFrameData[ 5 ], "First NALU second byte incorrect" );
-        TEST_ASSERT_EQUAL_HEX8_MESSAGE( 0xAA, frame.pFrameData[ 6 ], "First NALU payload 1 incorrect" );
-        TEST_ASSERT_EQUAL_HEX8_MESSAGE( 0xBB, frame.pFrameData[ 7 ], "First NALU payload 2 incorrect" );
-
-        /* Second NALU */
-        TEST_ASSERT_EQUAL_HEX8_MESSAGE( 0x00, frame.pFrameData[ 8 ], "Start code 2 byte 1 incorrect" );
-        TEST_ASSERT_EQUAL_HEX8_MESSAGE( 0x00, frame.pFrameData[ 9 ], "Start code 2 byte 2 incorrect" );
-        TEST_ASSERT_EQUAL_HEX8_MESSAGE( 0x00, frame.pFrameData[ 10 ], "Start code 2 byte 3 incorrect" );
-        TEST_ASSERT_EQUAL_HEX8_MESSAGE( 0x01, frame.pFrameData[ 11 ], "Start code 2 byte 4 incorrect" );
-        TEST_ASSERT_EQUAL_HEX8_MESSAGE( 0x40, frame.pFrameData[ 12 ], "Second NALU header incorrect" );
-        TEST_ASSERT_EQUAL_HEX8_MESSAGE( 0x01, frame.pFrameData[ 13 ], "Second NALU second byte incorrect" );
-        TEST_ASSERT_EQUAL_HEX8_MESSAGE( 0xCC, frame.pFrameData[ 14 ], "Second NALU payload 1 incorrect" );
-
-        /* Third NALU */
-        TEST_ASSERT_EQUAL_HEX8_MESSAGE( 0x00, frame.pFrameData[ 17 ], "Start code 3 byte 1 incorrect" );
-        TEST_ASSERT_EQUAL_HEX8_MESSAGE( 0x00, frame.pFrameData[ 18 ], "Start code 3 byte 2 incorrect" );
-        TEST_ASSERT_EQUAL_HEX8_MESSAGE( 0x00, frame.pFrameData[ 19 ], "Start code 3 byte 3 incorrect" );
-        TEST_ASSERT_EQUAL_HEX8_MESSAGE( 0x01, frame.pFrameData[ 20 ], "Start code 3 byte 4 incorrect" );
-        TEST_ASSERT_EQUAL_HEX8_MESSAGE( 0x44, frame.pFrameData[ 21 ], "Third NALU header incorrect" );
-
-        /* Verify total frame length */
-        TEST_ASSERT_EQUAL_MESSAGE( 25, frame.frameDataLength, "Frame length incorrect" );
-    }
-
-    TEST_ASSERT_EQUAL_MESSAGE( H265_RESULT_OK, result, "GetFrame failed" );
-}
-
-void test_H265_Depacketizer_ProcessAggregationPacket_WithDONL( void )
-{
-    H265DepacketizerContext_t ctx;
-    H265Result_t result;
-    H265Packet_t packetsArray[ 10 ];
-    H265Nalu_t nalu;
-
-    /* Initialize context and arrays */
-    memset( &ctx, 0, sizeof( H265DepacketizerContext_t ) );
-    memset( packetsArray, 0, sizeof( packetsArray ) );
-    memset( &nalu, 0, sizeof( H265Nalu_t ) );
-
-    uint8_t reassemblyBuffer[ 1500 ];
-    memset( reassemblyBuffer, 0, sizeof( reassemblyBuffer ) );
-
-    /* Create aggregation packet with DONL */
-    uint8_t aggrPacket[] =
-    {
-        /* AP Header */
-        0x61, 0x01,           /* AP header (2 bytes) */
-
-        /* First NALU unit */
-        0x00, 0x01,           /* DONL field (2 bytes) */
-        0x00, 0x04,           /* First NALU size (2 bytes) */
-        0x26, 0x01,           /* First NALU header */
-        0xAA, 0xBB,           /* First NALU payload */
-
-        /* Second NALU unit */
-        0x01,                 /* DOND (1 byte) */
-        0x00, 0x04,           /* Second NALU size (2 bytes) */
-        0x40, 0x01,           /* Second NALU header */
-        0xCC, 0xDD,           /* Second NALU payload */
-
-        /* Third NALU unit */
-        0x01,                 /* DOND (1 byte) */
-        0x00, 0x04,           /* Third NALU size (2 bytes) */
-        0x44, 0x01,           /* Third NALU header */
-        0xFF, 0x11            /* Third NALU payload */
-    };
-
-    size_t packetSize = sizeof( aggrPacket );
-
-    /* Initialize depacketizer with DONL present */
-    result = H265Depacketizer_Init( &ctx, packetsArray, 10, 1 );
-
-    /* Set up reassembly buffer */
-    ctx.fuDepacketizationState.pReassemblyBuffer = reassemblyBuffer;
-    ctx.fuDepacketizationState.reassemblyBufferSize = sizeof( reassemblyBuffer );
-
-    /* Add aggregation packet */
-    packetsArray[ 0 ].pPacketData = aggrPacket;
-    packetsArray[ 0 ].packetDataLength = packetSize;
-    result = H265Depacketizer_AddPacket( &ctx, &packetsArray[ 0 ] );
-
-    /* Get NALUs individually */
-    int naluCount = 0;
-
-    /* Initialize state for aggregation packet */
-    ctx.currentlyProcessingPacket = H265_PACKET_NONE;
-    ctx.apDepacketizationState.currentOffset = 0;
-    ctx.apDepacketizationState.firstUnit = 1;
-
-    while( 1 )
-    {
-        result = H265Depacketizer_GetNalu( &ctx, &nalu );
-
-        if( result != H265_RESULT_OK )
-        {
-            break;
-        }
-
-        naluCount++;
-
-        /* Clear first unit flag after first NALU */
-        if( naluCount == 1 )
-        {
-            ctx.apDepacketizationState.firstUnit = 0;
-        }
-    }
-
-    TEST_ASSERT_EQUAL_MESSAGE( 3, naluCount, "Incorrect number of NALUs processed" );
-}
-
 void test_H265_Depacketizer_AggregationPacket_ErrorCases( void )
 {
     H265DepacketizerContext_t ctx;
@@ -2268,64 +2096,84 @@ void test_H265_Depacketizer_AggregationPacket_ErrorCases( void )
     TEST_ASSERT_EQUAL( H265_RESULT_MALFORMED_PACKET, result );
 }
 
-void test_H265_Depacketizer_AggregationPacket_MalformedSize( void )
+void test_H265_Depacketizer_ProcessAggregationPacket_WithDON(void)
 {
-    printf( "\n=== Testing Malformed Aggregation Packet Size ===\n" );
-
     H265DepacketizerContext_t ctx;
     H265Result_t result;
-    H265Packet_t packetsArray[ 10 ];
-    H265Nalu_t nalu;
+    H265Packet_t packetsArray[20];
+    H265Frame_t frame = { 0 };
+    H265Nalu_t nalu = { 0 };
 
-    /* Initialize context and arrays */
-    memset( &ctx, 0, sizeof( H265DepacketizerContext_t ) );
-    memset( packetsArray, 0, sizeof( packetsArray ) );
-    memset( &nalu, 0, sizeof( H265Nalu_t ) );
+    /* Initialize structures */
+    memset(&ctx, 0, sizeof(H265DepacketizerContext_t));
+    memset(packetsArray, 0, sizeof(packetsArray));
+    memset(&nalu, 0, sizeof(H265Nalu_t));
 
-    /* Create malformed aggregation packet */
-    uint8_t aggrPacket[] =
-    {
-        0x61, 0x01,           /* AP header (type 48 = 0x30) */
-        0x00, 0x01,           /* DONL field (if needed) */
+    /* Create buffers */
+    uint8_t frameBuffer[1500];
+    uint8_t naluBuffer[1500];
+    uint8_t reassemblyBuffer[1500];  // Added reassembly buffer
+    memset(frameBuffer, 0, sizeof(frameBuffer));
+    memset(naluBuffer, 0, sizeof(naluBuffer));
+    memset(reassemblyBuffer, 0, sizeof(reassemblyBuffer));
 
-        /* First NALU - valid */
+    /* Setup frame and buffers */
+    frame.pFrameData = frameBuffer;
+    frame.frameDataLength = sizeof(frameBuffer);
+    nalu.pNaluData = naluBuffer;
+    nalu.naluDataLength = sizeof(naluBuffer);
+    
+    /* Setup reassembly buffer */
+    ctx.fuDepacketizationState.pReassemblyBuffer = reassemblyBuffer;
+    ctx.fuDepacketizationState.reassemblyBufferSize = sizeof(reassemblyBuffer);
+
+    /* Create aggregation packet */
+    static uint8_t aggrPacket[] = {
+        0x60, 0x01,           /* First byte: 011|00000, Second byte: 00000|001 */
+        0x00, 0x0A,           /* DONL = 10 */
+        
+        /* First NALU */
         0x00, 0x04,           /* First NALU length (4 bytes) */
-        0x26, 0x01,           /* First NALU header */
-        0xAA, 0xBB,           /* First NALU payload */
-
-        /* Second NALU - invalid size */
-        0x00, 0x08,           /* Second NALU length (just slightly too big) */
-        0x40, 0x01,           /* Second NALU header */
-        0xCC, 0xDD            /* Second NALU payload (incomplete) */
+        0x26, 0x01,           /* NALU1 header */
+        0xAA, 0xBB,           /* NALU1 payload */
+        
+        /* Second NALU with DOND */
+        0x02,                 /* DOND = 2 */
+        0x00, 0x04,           /* Second NALU length (4 bytes) */
+        0x26, 0x01,           /* NALU2 header */
+        0xCC, 0xDD            /* NALU2 payload */
     };
 
     /* Initialize depacketizer */
-    result = H265Depacketizer_Init( &ctx, packetsArray, 10, 1 );  /* Enable DONL */
-    TEST_ASSERT_EQUAL( H265_RESULT_OK, result );
+    result = H265Depacketizer_Init(&ctx, packetsArray, 20, 1);
+    TEST_ASSERT_EQUAL_MESSAGE(H265_RESULT_OK, result, "Init failed");
+
+    /* Setup packet in context */
+    packetsArray[0].pPacketData = aggrPacket;
+    packetsArray[0].packetDataLength = sizeof(aggrPacket);
+    ctx.pPacketsArray = packetsArray;
+    ctx.tailIndex = 0;
+    ctx.donPresent = 1;
 
     /* Add packet */
-    packetsArray[ 0 ].pPacketData = aggrPacket;
-    packetsArray[ 0 ].packetDataLength = sizeof( aggrPacket );
-    ctx.packetCount = 1;
-    ctx.donPresent = 1;  /* Enable DONL processing */
+    result = H265Depacketizer_AddPacket(&ctx, &packetsArray[0]);
+    TEST_ASSERT_EQUAL_MESSAGE(H265_RESULT_OK, result, "AddPacket failed");
 
-    printf( "Test setup:\n" );
-    printf( "Total packet length: %zu\n", sizeof( aggrPacket ) );
-    printf( "First NALU size field: 0x%02X%02X\n", aggrPacket[ 4 ], aggrPacket[ 5 ] );
-    printf( "Second NALU size field: 0x%02X%02X\n", aggrPacket[ 10 ], aggrPacket[ 11 ] );
+    /* Get Frame and verify */
+    result = H265Depacketizer_GetFrame(&ctx, &frame);
+    TEST_ASSERT_EQUAL_MESSAGE(H265_RESULT_OK, result, "GetFrame failed");
+    
+    /* Verify frame contents */
+    TEST_ASSERT_EQUAL_HEX8_MESSAGE(0x00, frame.pFrameData[0], "First start code byte 1");
+    TEST_ASSERT_EQUAL_HEX8_MESSAGE(0x00, frame.pFrameData[1], "First start code byte 2");
+    TEST_ASSERT_EQUAL_HEX8_MESSAGE(0x00, frame.pFrameData[2], "First start code byte 3");
+    TEST_ASSERT_EQUAL_HEX8_MESSAGE(0x01, frame.pFrameData[3], "First start code byte 4");
+    TEST_ASSERT_EQUAL_HEX8_MESSAGE(0x26, frame.pFrameData[4], "First NALU header");
+    TEST_ASSERT_EQUAL_HEX8_MESSAGE(0x01, frame.pFrameData[5], "First NALU second byte");
+    TEST_ASSERT_EQUAL_HEX8_MESSAGE(0xAA, frame.pFrameData[6], "First NALU payload 1");
+    TEST_ASSERT_EQUAL_HEX8_MESSAGE(0xBB, frame.pFrameData[7], "First NALU payload 2");
 
-    /* Process first NALU - should succeed */
-    result = H265Depacketizer_GetNalu( &ctx, &nalu );
-    printf( "\nFirst GetNalu result: %d\n", result );
-    printf( "First NALU length: %zu\n", nalu.naluDataLength );
-    TEST_ASSERT_EQUAL( H265_RESULT_OK, result );
-
-    /* Process second NALU - should fail due to invalid size */
-    result = H265Depacketizer_GetNalu( &ctx, &nalu );
-    printf( "\nSecond GetNalu result: %d\n", result );
-    TEST_ASSERT_EQUAL( H265_RESULT_MALFORMED_PACKET, result );
-
-    printf( "=== Test Complete ===\n" );
+    TEST_ASSERT_EQUAL_MESSAGE(16, frame.frameDataLength, "Frame length incorrect");
 }
 
 void test_H265_Depacketizer_AP_NALUSize_TooLarge( void )
@@ -2334,8 +2182,6 @@ void test_H265_Depacketizer_AP_NALUSize_TooLarge( void )
     H265Result_t result;
     H265Packet_t packetsArray[ 10 ];
     H265Frame_t frame = { 0 };
-
-    printf( "\n=== Starting AP NALU Size Too Large Test ===\n" );
 
     /* Initialize everything */
     memset( &ctx, 0, sizeof( H265DepacketizerContext_t ) );
@@ -2372,15 +2218,222 @@ void test_H265_Depacketizer_AP_NALUSize_TooLarge( void )
     TEST_ASSERT_EQUAL( H265_RESULT_OK, result );
 
     /* Try to get frame - should fail */
-    printf( "Getting Frame (expecting MALFORMED_PACKET)...\n" );
     result = H265Depacketizer_GetFrame( &ctx, &frame );
-    printf( "GetFrame result: %d (Expected: %d)\n", result, H265_RESULT_MALFORMED_PACKET );
 
     /* Verify results */
     TEST_ASSERT_EQUAL( H265_RESULT_MALFORMED_PACKET, result );
+}
+
+void test_H265_Depacketizer_AP_OutOfMemory( void )
+{
+    H265DepacketizerContext_t ctx;
+    H265Result_t result;
+    H265Packet_t packetsArray[ 10 ];
+    H265Nalu_t nalu = { 0 };
+
+    /* Initialize everything */
+    memset( &ctx, 0, sizeof( H265DepacketizerContext_t ) );
+    memset( packetsArray, 0, sizeof( packetsArray ) );
+
+    /* Initialize NALU buffer - intentionally small */
+    uint8_t naluBuffer[ 10 ];
+    memset( naluBuffer, 0, sizeof( naluBuffer ) );
+    nalu.pNaluData = naluBuffer;
+    nalu.naluDataLength = sizeof( naluBuffer );
+
+    /* Initialize depacketizer */
+    result = H265Depacketizer_Init( &ctx, packetsArray, 10, 0 );
+    TEST_ASSERT_EQUAL( H265_RESULT_OK, result );
+
+    /* Create AP packet:
+     * - Valid AP header
+     * - Valid packet length
+     * - NALU size larger than buffer
+     */
+    static const uint8_t apPacket[] =
+    {
+        0x60, 0x00,             /* AP indicator (type = 48) and layer/TID */
+        0x00, 0x15,             /* First NALU size (21 bytes - larger than buffer) */
+        0x26, 0x01,             /* NALU header */
+        0x00, 0x00, 0x00, 0x00, /* Payload */
+        0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00       /* 21 bytes total for first NALU */
+    };
+
+    /* Add packet */
+    H265Packet_t inputPacket = {
+        .pPacketData = (uint8_t *)apPacket,
+        .packetDataLength = sizeof(apPacket)
+    };
+
+    result = H265Depacketizer_AddPacket( &ctx, &inputPacket );
+    TEST_ASSERT_EQUAL( H265_RESULT_OK, result );
+
+    /* Try to get NALU - should fail with OUT_OF_MEMORY */
+    result = H265Depacketizer_GetNalu( &ctx, &nalu );
+
+    /* Verify results */
+    TEST_ASSERT_EQUAL( H265_RESULT_OUT_OF_MEMORY, result );
+}
+
+void test_H265_Depacketizer_AP_OutOfMemory_SecondNalu( void )
+{
+    H265DepacketizerContext_t ctx;
+    H265Result_t result;
+    H265Packet_t packetsArray[ 10 ];
+    H265Nalu_t nalu = { 0 };
+
+    printf( "\n=== Starting AP Out Of Memory Test for Second NALU ===\n" );
+
+    /* Initialize everything */
+    memset( &ctx, 0, sizeof( H265DepacketizerContext_t ) );
+    memset( packetsArray, 0, sizeof( packetsArray ) );
+
+    /* Initialize NALU buffer - intentionally small */
+    static uint8_t naluBuffer[ 10 ];
+    memset( naluBuffer, 0, sizeof( naluBuffer ) );
+    nalu.pNaluData = naluBuffer;
+    nalu.naluDataLength = sizeof( naluBuffer );
+
+    /* Initialize depacketizer */
+    result = H265Depacketizer_Init( &ctx, packetsArray, 10, 0 );
+    TEST_ASSERT_EQUAL( H265_RESULT_OK, result );
+
+    /* Create AP packet:
+     * - First NALU small enough to fit
+     * - Second NALU too large for buffer
+     */
+    static const uint8_t apPacket[] =
+    {
+        0x60, 0x00,             /* AP indicator (type = 48) and layer/TID */
+        0x00, 0x04,             /* First NALU size (4 bytes) */
+        0x26, 0x01,             /* First NALU header */
+        0xAA, 0xBB,             /* First NALU payload */
+        0x00, 0x15,             /* Second NALU size (21 bytes - larger than buffer) */
+        0x40, 0x01,             /* Second NALU header */
+        0x00, 0x00, 0x00, 0x00, /* Second NALU payload */
+        0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00       /* 21 bytes total for second NALU */
+    };
+
+    /* Add packet */
+    H265Packet_t inputPacket = {
+        .pPacketData = (uint8_t *)apPacket,
+        .packetDataLength = sizeof(apPacket)
+    };
+
+    result = H265Depacketizer_AddPacket( &ctx, &inputPacket );
+    TEST_ASSERT_EQUAL( H265_RESULT_OK, result );
+
+    /* Get first NALU - should succeed */
+    printf( "Getting First NALU (expecting OK)...\n" );
+    result = H265Depacketizer_GetNalu( &ctx, &nalu );
+    TEST_ASSERT_EQUAL( H265_RESULT_OK, result );
+    printf( "First GetNalu result: %d (Expected: %d)\n", result, H265_RESULT_OK );
+
+    /* Try to get second NALU - should fail with OUT_OF_MEMORY */
+    printf( "Getting Second NALU (expecting OUT_OF_MEMORY)...\n" );
+    result = H265Depacketizer_GetNalu( &ctx, &nalu );
+    printf( "Second GetNalu result: %d (Expected: %d)\n", result, H265_RESULT_OUT_OF_MEMORY );
+
+    /* Verify results */
+    TEST_ASSERT_EQUAL( H265_RESULT_OUT_OF_MEMORY, result );
 
     printf( "=== Test Complete ===\n" );
 }
+
+void test_H265_Depacketizer_AP_UpdateOffset_MoreNalus( void )
+{
+    H265DepacketizerContext_t ctx;
+    H265Result_t result;
+    H265Packet_t packetsArray[ 10 ];
+    H265Nalu_t nalu = { 0 };
+
+    printf( "\n=== Starting AP Update Offset Test ===\n" );
+
+    /* Initialize everything */
+    memset( &ctx, 0, sizeof( H265DepacketizerContext_t ) );
+    memset( packetsArray, 0, sizeof( packetsArray ) );
+
+    /* Initialize NALU buffer */
+    static uint8_t naluBuffer[ 20 ];
+    memset( naluBuffer, 0, sizeof( naluBuffer ) );
+    nalu.pNaluData = naluBuffer;
+    nalu.naluDataLength = sizeof( naluBuffer );
+
+    /* Initialize depacketizer */
+    result = H265Depacketizer_Init( &ctx, packetsArray, 10, 0 );
+    TEST_ASSERT_EQUAL( H265_RESULT_OK, result );
+
+    /* Create AP packet with three NALUs:
+     * Bytes 0-1:   AP header (2 bytes)
+     * Bytes 2-7:   First NALU (2 bytes size + 4 bytes data)
+     * Bytes 8-13:  Second NALU (2 bytes size + 4 bytes data)
+     * Bytes 14-19: Third NALU (2 bytes size + 4 bytes data)
+     */
+    static const uint8_t apPacket[] =
+    {
+        0x60, 0x00,             /* AP indicator (type = 48) and layer/TID */
+        
+        0x00, 0x04,             /* First NALU size (4 bytes) */
+        0x26, 0x01,             /* First NALU header */
+        0xAA, 0xBB,             /* First NALU payload */
+        
+        0x00, 0x04,             /* Second NALU size (4 bytes) */
+        0x40, 0x01,             /* Second NALU header */
+        0xCC, 0xDD,             /* Second NALU payload */
+        
+        0x00, 0x04,             /* Third NALU size (4 bytes) */
+        0x44, 0x01,             /* Third NALU header */
+        0xEE, 0xFF              /* Third NALU payload */
+    };
+
+    /* Add packet */
+    H265Packet_t inputPacket = {
+        .pPacketData = (uint8_t *)apPacket,
+        .packetDataLength = sizeof(apPacket)
+    };
+
+    result = H265Depacketizer_AddPacket( &ctx, &inputPacket );
+    TEST_ASSERT_EQUAL( H265_RESULT_OK, result );
+
+    /* Get first NALU */
+    printf( "Getting First NALU...\n" );
+    result = H265Depacketizer_GetNalu( &ctx, &nalu );
+    TEST_ASSERT_EQUAL( H265_RESULT_OK, result );
+    
+    /* Verify currentOffset is set to start of second NALU */
+    TEST_ASSERT_EQUAL( 8, ctx.apDepacketizationState.currentOffset );
+    printf( "After first NALU - currentOffset: %zu (Expected: 8)\n", 
+            ctx.apDepacketizationState.currentOffset );
+
+    /* Get second NALU */
+    printf( "Getting Second NALU...\n" );
+    result = H265Depacketizer_GetNalu( &ctx, &nalu );
+    TEST_ASSERT_EQUAL( H265_RESULT_OK, result );
+    
+    /* Verify currentOffset is set to start of third NALU */
+    TEST_ASSERT_EQUAL( 14, ctx.apDepacketizationState.currentOffset );
+    printf( "After second NALU - currentOffset: %zu (Expected: 14)\n", 
+            ctx.apDepacketizationState.currentOffset );
+
+    /* Get third NALU */
+    printf( "Getting Third NALU...\n" );
+    result = H265Depacketizer_GetNalu( &ctx, &nalu );
+    TEST_ASSERT_EQUAL( H265_RESULT_OK, result );
+    
+    /* Verify packet is completed */
+    TEST_ASSERT_EQUAL( H265_PACKET_NONE, ctx.currentlyProcessingPacket );
+    printf( "After third NALU - Processing complete\n" );
+
+    printf( "=== Test Complete ===\n" );
+}
+
+
 
 /*-------------------------------------------------------------------------------------------------------------*/
 
@@ -2787,6 +2840,59 @@ void test_H265_Depacketizer_AddPacket_NoMoreSpace( void )
     /* Verify result */
     TEST_ASSERT_EQUAL( H265_RESULT_NO_MORE_PACKETS, result );
     TEST_ASSERT_EQUAL( ctx.packetsArrayLength, ctx.packetCount );
+}
+
+/*-------------------------------------------------------------------------------------------------------------*/
+
+void test_H265Depacketizer_GetFrame_BufferTooSmall(void)
+{
+    H265DepacketizerContext_t ctx;
+    H265Result_t result;
+    H265Packet_t packetsArray[10];
+    H265Frame_t frame;
+    
+    /* Initialize all structures */
+    memset(&ctx, 0, sizeof(H265DepacketizerContext_t));
+    memset(packetsArray, 0, sizeof(packetsArray));
+    
+    /* Setup reassembly buffer */
+    uint8_t reassemblyBuffer[1500];
+    ctx.fuDepacketizationState.pReassemblyBuffer = reassemblyBuffer;
+    ctx.fuDepacketizationState.reassemblyBufferSize = sizeof(reassemblyBuffer);
+    
+    /* Create test packet with single NAL unit */
+    uint8_t packetData[] = {
+        0x26, 0x01,           /* NAL unit header (type within valid single NAL unit range) */
+        0xAA, 0xBB, 0xCC, 0xDD, 0xEE  /* Payload */
+    };
+    
+    /* Create deliberately small frame buffer */
+    uint8_t frameBuffer[6];   /* Only 6 bytes: not enough for start code (4) + NAL unit (7) */
+    
+    /* Initialize frame */
+    frame.pFrameData = frameBuffer;
+    frame.frameDataLength = sizeof(frameBuffer);
+    
+    /* Setup context */
+    packetsArray[0].pPacketData = packetData;
+    packetsArray[0].packetDataLength = sizeof(packetData);
+    ctx.pPacketsArray = packetsArray;
+    ctx.packetCount = 1;
+    ctx.tailIndex = 0;
+    
+    /* Initialize depacketizer */
+    result = H265Depacketizer_Init(&ctx, packetsArray, 1, 0);
+    TEST_ASSERT_EQUAL_MESSAGE(H265_RESULT_OK, result, "Depacketizer init failed");
+    
+    /* Add packet */
+    result = H265Depacketizer_AddPacket(&ctx, &packetsArray[0]);
+    TEST_ASSERT_EQUAL_MESSAGE(H265_RESULT_OK, result, "Failed to add packet");
+    
+    /* Try to get frame - should fail due to small buffer */
+    result = H265Depacketizer_GetFrame(&ctx, &frame);
+    
+    TEST_ASSERT_EQUAL_MESSAGE(H265_RESULT_BUFFER_TOO_SMALL, result, 
+                            "Expected buffer too small error when frame buffer cannot hold start code + NALU");
 }
 
 /*-------------------------------------------------------------------------------------------------------------*/

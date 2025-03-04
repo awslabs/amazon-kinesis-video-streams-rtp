@@ -287,7 +287,7 @@ static H265Result_t H265Depacketizer_ProcessAggregationPacket( H265DepacketizerC
         if( pCtx->currentlyProcessingPacket != H265_AP_PACKET )
         {
             pCtx->currentlyProcessingPacket = H265_AP_PACKET;
-            pCtx->apDepacketizationState.currentOffset = NALU_HEADER_SIZE;
+            pCtx->apDepacketizationState.currentOffset = AP_HEADER_SIZE;
 
 /* Handle DONL if present */
             if( pCtx->donPresent )
@@ -309,22 +309,28 @@ static H265Result_t H265Depacketizer_ProcessAggregationPacket( H265DepacketizerC
 /* Validate NALU size */
             if( offset + nalu_size <= pCurrentPacket->packetDataLength )
             {
-/* Set NALU fields for first unit */
-                pNalu->pNaluData = &pCurrentPacket->pPacketData[ offset ];
-                pNalu->naluDataLength = nalu_size;
-                pNalu->nal_unit_type = ( pCurrentPacket->pPacketData[ offset ] >> 1 ) & 0x3F;
-                pNalu->nal_layer_id = ( ( pCurrentPacket->pPacketData[ offset ] & 0x01 ) << 5 ) |
-                                      ( ( pCurrentPacket->pPacketData[ offset + 1 ] & 0xF8 ) >> 3 );
-                pNalu->temporal_id = pCurrentPacket->pPacketData[ offset + 1 ] & 0x07;
+                /* Add buffer size check */
+                if( nalu_size <= pNalu->naluDataLength )
+                {
+                    /* Set NALU fields for first unit */
+                    pNalu->pNaluData = &pCurrentPacket->pPacketData[ offset ];
+                    pNalu->naluDataLength = nalu_size;
+                    pNalu->nal_unit_type = ( pCurrentPacket->pPacketData[ offset ] >> 1 ) & 0x3F;
+                    pNalu->nal_layer_id = ( ( pCurrentPacket->pPacketData[ offset ] & 0x01 ) << 5 ) |
+                                          ( ( pCurrentPacket->pPacketData[ offset + 1 ] & 0xF8 ) >> 3 );
+                    pNalu->temporal_id = pCurrentPacket->pPacketData[ offset + 1 ] & 0x07;
 
-/* Update offset for next time */
-                offset += nalu_size;
-                pCtx->apDepacketizationState.currentOffset = offset;
+                    /* Update offset for next time */
+                    offset += nalu_size;
+                    pCtx->apDepacketizationState.currentOffset = offset;
+                }
+                else
+                {
+                    result = H265_RESULT_OUT_OF_MEMORY;
+                }
             }
-            else
-            {
-                result = H265_RESULT_MALFORMED_PACKET;
-            }
+            else{
+                result = H265_RESULT_MALFORMED_PACKET;}
         }
         else
         {
@@ -347,34 +353,40 @@ static H265Result_t H265Depacketizer_ProcessAggregationPacket( H265DepacketizerC
 /* Validate NALU size */
             if( offset + nalu_size <= pCurrentPacket->packetDataLength )
             {
-/* Set NALU fields */
-                pNalu->pNaluData = &pCurrentPacket->pPacketData[ offset ];
-                pNalu->naluDataLength = nalu_size;
-                pNalu->nal_unit_type = ( pCurrentPacket->pPacketData[ offset ] >> 1 ) & 0x3F;
-                pNalu->nal_layer_id = ( ( pCurrentPacket->pPacketData[ offset ] & 0x01 ) << 5 ) |
-                                      ( ( pCurrentPacket->pPacketData[ offset + 1 ] & 0xF8 ) >> 3 );
-                pNalu->temporal_id = pCurrentPacket->pPacketData[ offset + 1 ] & 0x07;
-
-/* Update state */
-                offset += nalu_size;
-                pCtx->apDepacketizationState.firstUnit = 0;
-
-/* Check if we've processed all NAL units in this AP */
-                if( offset >= pCurrentPacket->packetDataLength )
+                /* Add buffer size check */
+                if( nalu_size <= pNalu->naluDataLength )
                 {
-                    pCtx->currentlyProcessingPacket = H265_PACKET_NONE;
-                    pCtx->tailIndex++;
-                    pCtx->packetCount--;
+                    /* Set NALU fields */
+                    pNalu->pNaluData = &pCurrentPacket->pPacketData[ offset ];
+                    pNalu->naluDataLength = nalu_size;
+                    pNalu->nal_unit_type = ( pCurrentPacket->pPacketData[ offset ] >> 1 ) & 0x3F;
+                    pNalu->nal_layer_id = ( ( pCurrentPacket->pPacketData[ offset ] & 0x01 ) << 5 ) |
+                                          ( ( pCurrentPacket->pPacketData[ offset + 1 ] & 0xF8 ) >> 3 );
+                    pNalu->temporal_id = pCurrentPacket->pPacketData[ offset + 1 ] & 0x07;
+
+                    /* Update state */
+                    offset += nalu_size;
+                    pCtx->apDepacketizationState.firstUnit = 0;
+
+                    /* Check if we've processed all NAL units in this AP */
+                    if( offset >= pCurrentPacket->packetDataLength )
+                    {
+                        pCtx->currentlyProcessingPacket = H265_PACKET_NONE;
+                        pCtx->tailIndex++;
+                        pCtx->packetCount--;
+                    }
+                    else
+                    {
+                        pCtx->apDepacketizationState.currentOffset = offset;
+                    }
                 }
                 else
                 {
-                    pCtx->apDepacketizationState.currentOffset = offset;
+                    result = H265_RESULT_OUT_OF_MEMORY;
                 }
             }
-            else
-            {
-                result = H265_RESULT_MALFORMED_PACKET;
-            }
+            else{
+            result = H265_RESULT_MALFORMED_PACKET;}
         }
     }
     else
@@ -425,14 +437,6 @@ H265Result_t H265Depacketizer_Init( H265DepacketizerContext_t * pCtx,
 
         /* Initialize AP state */
         memset( &pCtx->apDepacketizationState, 0, sizeof( pCtx->apDepacketizationState ) );
-
-        /* Initialize only necessary packet array fields */
-        for(size_t i = 0; i < packetsArrayLength; i++)
-        {
-            pPacketsArray[ i ].pPacketData = NULL;
-            pPacketsArray[ i ].packetDataLength = 0;
-            /* maxPacketSize will be set when packets are actually added */
-        }
     }
 
     return result;
@@ -492,7 +496,7 @@ H265Result_t H265Depacketizer_GetNalu( H265DepacketizerContext_t * pCtx,
 
     if( result == H265_RESULT_OK )
     {
-        nal_unit_type = ( pCtx->pPacketsArray[ pCtx->tailIndex ].pPacketData[ 0 ] >> 1 ) & 0x3F;
+        nal_unit_type = ( pCtx->pPacketsArray[ pCtx->tailIndex ].pPacketData[ 0 ] >> 1 ) & FU_HEADER_TYPE_MASK;
 
         if( ( nal_unit_type >= SINGLE_NALU_PACKET_TYPE_START ) &&
             ( nal_unit_type <= SINGLE_NALU_PACKET_TYPE_END ) )
@@ -525,59 +529,58 @@ H265Result_t H265Depacketizer_GetFrame( H265DepacketizerContext_t * pCtx,
     size_t currentOffset = 0;
     H265Nalu_t nalu;
     const uint8_t startCode[] = { 0x00, 0x00, 0x00, 0x01 };
-    uint8_t continueProcessing = 1;
-    uint8_t validParams = 1;
 
 /* Parameter validation */
     if( ( pCtx == NULL ) || ( pFrame == NULL ) ||
         ( pFrame->pFrameData == NULL ) || ( pFrame->frameDataLength == 0 ) )
     {
         result = H265_RESULT_BAD_PARAM;
-        validParams = 0;
     }
 
-/* Process if parameters are valid */
-    if( validParams )
-    {
 /* Process NAL units until we hit an error or run out */
-        while( ( result == H265_RESULT_OK ) && continueProcessing )
+    while( result == H265_RESULT_OK )
+    {
+        result = H265Depacketizer_GetNalu( pCtx, &nalu );
+
+        if( result == H265_RESULT_NO_MORE_NALUS )
         {
-            result = H265Depacketizer_GetNalu( pCtx, &nalu );
-
-            if( result == H265_RESULT_NO_MORE_NALUS )
+            if( currentOffset > 0 )      /* If we've processed at least one NALU */
             {
-                if( currentOffset > 0 )  /* If we've processed at least one NALU */
-                {
-                    result = H265_RESULT_OK;
-                }
-                else
-                {
-                    result = H265_RESULT_NO_MORE_FRAMES;
-                }
-
-                continueProcessing = 0;
+                result = H265_RESULT_OK;
             }
-            else if( result == H265_RESULT_OK )
+            else
             {
+                result = H265_RESULT_NO_MORE_FRAMES;
+            }
+
+            break;
+        }
+        else if( result == H265_RESULT_OK )
+        {
+            if( ( pFrame->frameDataLength - currentOffset ) < ( sizeof( startCode ) + nalu.naluDataLength ) )
+            {
+                result = H265_RESULT_BUFFER_TOO_SMALL;
+                break;
+            }
+
 /* Add start code */
-                memcpy( pFrame->pFrameData + currentOffset,
-                        startCode,
-                        sizeof( startCode ) );
-                currentOffset += sizeof( startCode );
+            memcpy( pFrame->pFrameData + currentOffset,
+                    startCode,
+                    sizeof( startCode ) );
+            currentOffset += sizeof( startCode );
 
 /* Add NAL unit */
-                memcpy( pFrame->pFrameData + currentOffset,
-                        nalu.pNaluData,
-                        nalu.naluDataLength );
-                currentOffset += nalu.naluDataLength;
-            }
+            memcpy( pFrame->pFrameData + currentOffset,
+                    nalu.pNaluData,
+                    nalu.naluDataLength );
+            currentOffset += nalu.naluDataLength;
         }
+    }
 
 /* Set frame length if we successfully built a frame */
-        if( result == H265_RESULT_OK )
-        {
-            pFrame->frameDataLength = currentOffset;
-        }
+    if( result == H265_RESULT_OK )
+    {
+        pFrame->frameDataLength = currentOffset;
     }
 
     return result;
@@ -592,17 +595,15 @@ H265Result_t H265Depacketizer_GetPacketProperties( const uint8_t * pPacketData,
     H265Result_t result = H265_RESULT_OK;
     uint8_t nal_unit_type;
     uint8_t fu_header;
-    uint8_t validParams = 1;
 
 /* Parameter validation */
     if( ( pPacketData == NULL ) || ( pProperties == NULL ) ||
         ( packetDataLength < NALU_HEADER_SIZE ) )
     {
         result = H265_RESULT_BAD_PARAM;
-        validParams = 0;
     }
 
-    if( validParams )
+    if( result == H265_RESULT_OK )
     {
 /* Initialize properties */
         *pProperties = 0;
