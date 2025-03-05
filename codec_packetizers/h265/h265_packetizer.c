@@ -606,7 +606,6 @@ H265Result_t H265Packetizer_GetPacket( H265PacketizerContext_t * pCtx,
     size_t totalSize = 0;
     size_t nalusToAggregate = 0;
     size_t tempIndex = 0;
-    uint8_t shouldProcess = 0;
 
     if( ( pCtx != NULL ) && ( pPacket != NULL ) &&
         ( pPacket->pPacketData != NULL ) && ( pPacket->maxPacketSize != 0 ) )
@@ -623,7 +622,6 @@ H265Result_t H265Packetizer_GetPacket( H265PacketizerContext_t * pCtx,
             if( pCtx->naluCount > 0 )
             {
                 result = H265_RESULT_OK;
-                shouldProcess = 1;
 
 /* Main processing */
                 if( pCtx->currentlyProcessingPacket == H265_FU_PACKET )
