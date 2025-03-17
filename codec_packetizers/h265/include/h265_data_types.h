@@ -15,7 +15,7 @@
  */
 
 #define NALU_HEADER_SIZE                      2
-#define MAX_DON_DIFF_VALUE                    32767 /* Maximum DON difference allowed (2^15 - 1, per RFC 7798) */
+
 
 /* NAL unit header field maximum values (as per H.265/HEVC specification) */
 #define MAX_NAL_UNIT_TYPE                     63 /* 6 bits (0-63) */
@@ -65,7 +65,6 @@
 #define FU_HEADER_OFFSET            2
 #define FU_HEADER_SIZE              1
 #define TOTAL_FU_HEADER_SIZE        3       /* Total header size (NAL + FU) */
-#define DONL_FIELD_SIZE             2       /* Size of DONL field when present */
 
 #define FU_HEADER_S_BIT_MASK        0x80
 #define FU_HEADER_S_BIT_LOCATION    7
@@ -101,8 +100,6 @@
  */
 #define AP_HEADER_SIZE               2           /* the size of the big box's label */
 #define AP_NALU_LENGTH_FIELD_SIZE    2           /* the size of each smaller box's size tag */
-#define AP_DONL_SIZE                 2           /* Size of DONL field (if present) */
-#define AP_DOND_SIZE                 1           /* Size of DOND field (if present) */
 
 /*-----------------------------------------------------------*/
 
@@ -154,7 +151,6 @@ typedef struct H265Nalu
     uint8_t nal_unit_type;     /* (eg. VPS, SPS, PPS) */
     uint8_t nal_layer_id;
     uint8_t temporal_id;
-    uint8_t don;
 } H265Nalu_t;
 
 typedef struct H265Frame

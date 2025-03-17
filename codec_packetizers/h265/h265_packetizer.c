@@ -1,5 +1,6 @@
 /* Standard includes. */
 #include <string.h>
+#include <stdio.h>
 
 /* API includes. */
 #include "h265_packetizer.h"
@@ -32,39 +33,16 @@ static void PacketizeAggregationPacket( H265PacketizerContext_t * pCtx,
 static void PacketizeSingleNaluPacket( H265PacketizerContext_t * pCtx,
                                        H265Packet_t * pPacket )
 {
-    uint16_t donl = pCtx->pNaluArray[ pCtx->tailIndex ].don;
-
-    /* 1. Copy NAL header from context to output */
+    /* Copy NAL header from context to output */
     memcpy( &( pPacket->pPacketData[ 0 ] ),
             &( pCtx->pNaluArray[ pCtx->tailIndex ].pNaluData[ 0 ] ),
-            NALU_HEADER_SIZE );
+            pCtx->pNaluArray[ pCtx->tailIndex ].naluDataLength  );
 
-    if( pCtx->spropMaxDonDiff > 0 )
-    {
-        pPacket->pPacketData[ NALU_HEADER_SIZE ] = ( donl >> 8 ) & 0xFF; /* MSB */
-        pPacket->pPacketData[ NALU_HEADER_SIZE + 1 ] = donl & 0xFF;      /* LSB */
-
-        /* 2. Copy payload from context to output (after DONL) */
-        memcpy( &( pPacket->pPacketData[ NALU_HEADER_SIZE + DONL_FIELD_SIZE ] ),
-                &( pCtx->pNaluArray[ pCtx->tailIndex ].pNaluData[ NALU_HEADER_SIZE ] ),
-                pCtx->pNaluArray[ pCtx->tailIndex ].naluDataLength - NALU_HEADER_SIZE );
-
-        pPacket->packetDataLength = pCtx->pNaluArray[ pCtx->tailIndex ].naluDataLength + DONL_FIELD_SIZE;
-    }
-    else
-    {
-        /* Without DONL, copy payload right after header */
-        memcpy( &( pPacket->pPacketData[ NALU_HEADER_SIZE ] ),
-                &( pCtx->pNaluArray[ pCtx->tailIndex ].pNaluData[ NALU_HEADER_SIZE ] ),
-                pCtx->pNaluArray[ pCtx->tailIndex ].naluDataLength - NALU_HEADER_SIZE );
-
-        pPacket->packetDataLength = pCtx->pNaluArray[ pCtx->tailIndex ].naluDataLength;
-    }
+    pPacket->packetDataLength = pCtx->pNaluArray[ pCtx->tailIndex ].naluDataLength;
 
     /* Move to next NAL unit */
     pCtx->tailIndex += 1;
     pCtx->naluCount -= 1;
-    pCtx->currentDon += 1;
 }
 
 /*-------------------------------------------------------------------------------------------------*/
@@ -101,8 +79,6 @@ static void PacketizeFragmentationUnitPacket( H265PacketizerContext_t * pCtx,
     size_t maxPayloadSize = 0;
     size_t payloadSize = 0;
     size_t offset = 0;
-    uint16_t donl = 0;
-    uint8_t dond = 0;
 
     /* First fragment? */
     if( pCtx->currentlyProcessingPacket == H265_PACKET_NONE )
@@ -134,7 +110,6 @@ static void PacketizeFragmentationUnitPacket( H265PacketizerContext_t * pCtx,
         pCtx->fuPacketizationState.naluDataIndex = NALU_HEADER_SIZE;
         pCtx->fuPacketizationState.remainingNaluLength =
             pCtx->pNaluArray[ pCtx->tailIndex ].naluDataLength - NALU_HEADER_SIZE;
-        pCtx->fuPacketizationState.donl = pCtx->currentDon;
 
         /* Set S bit for first fragment */
         fuHeader |= FU_HEADER_S_BIT_MASK;
@@ -142,18 +117,6 @@ static void PacketizeFragmentationUnitPacket( H265PacketizerContext_t * pCtx,
 
     /* Calculate available payload size */
     headerSize = TOTAL_FU_HEADER_SIZE;     /* PayloadHdr(2) + FUHeader(1) */
-
-    if( pCtx->spropMaxDonDiff > 0 )
-    {
-        if( fuHeader & FU_HEADER_S_BIT_MASK )
-        {
-            headerSize += DONL_FIELD_SIZE; /* 2 bytes for DONL in first fragment */
-        }
-        else
-        {
-            headerSize += AP_DOND_SIZE; /* 1 byte for DOND in subsequent fragments */
-        }
-    }
 
     /* Calculate maximum payload size for this packet */
     maxPayloadSize = ( pPacket->maxPacketSize > headerSize ) ? pPacket->maxPacketSize - headerSize : 0;
@@ -187,24 +150,6 @@ static void PacketizeFragmentationUnitPacket( H265PacketizerContext_t * pCtx,
     pPacket->pPacketData[ offset ] = fuHeader;
     offset++;
 
-    if( pCtx->spropMaxDonDiff > 0 )
-    {
-        if( fuHeader & FU_HEADER_S_BIT_MASK )
-        {
-            /* Write DONL for first fragment */
-            donl = pCtx->currentDon;
-            pPacket->pPacketData[ offset++ ] = ( donl >> 8 ) & 0xFF; /* MSB */
-            pPacket->pPacketData[ offset++ ] = donl & 0xFF;          /* LSB */
-            pCtx->fuPacketizationState.donl = pCtx->currentDon;      /* Save for DOND calculation */
-        }
-        else
-        {
-            /* Write DOND for subsequent fragments */
-            dond = 0; /* DOND is always 0 for fragments of the same NAL unit */
-            pPacket->pPacketData[ offset++ ] = dond;
-        }
-    }
-
     /* Copy payload */
     if( payloadSize > 0 )
     {
@@ -224,7 +169,6 @@ static void PacketizeFragmentationUnitPacket( H265PacketizerContext_t * pCtx,
         pCtx->currentlyProcessingPacket = H265_PACKET_NONE;
         pCtx->tailIndex++;
         pCtx->naluCount--;
-        pCtx->currentDon++;
     }
 }
 
@@ -260,11 +204,6 @@ static void PacketizeAggregationPacket( H265PacketizerContext_t * pCtx,
     uint8_t min_layer_id = MAX_LAYER_ID;
     uint8_t min_tid = MAX_TEMPORAL_ID;
 
-    uint16_t donl = 0;
-    uint16_t lastDon = 0;
-    uint8_t dond = 0;
-    uint16_t currentDon = 0;
-
     size_t temp_offset = 2;              /* Start after PayloadHdr */
     size_t availableSize = pPacket->maxPacketSize;
     size_t scan_index = pCtx->tailIndex; /* Start with first NAL */
@@ -275,12 +214,6 @@ static void PacketizeAggregationPacket( H265PacketizerContext_t * pCtx,
         /* Calculate space needed for this NAL */
         needed_size = AP_NALU_LENGTH_FIELD_SIZE +
                       pCtx->pNaluArray[ scan_index ].naluDataLength;        /* NAL data */
-
-        /* Add DONL/DOND size if needed */
-        if( pCtx->spropMaxDonDiff > 0 )
-        {
-            needed_size += ( naluCount == 0 ) ? DONL_FIELD_SIZE : AP_DOND_SIZE;
-        }
 
         /* Check if this NAL would fit */
         if( temp_offset + needed_size > availableSize )
@@ -296,8 +229,10 @@ static void PacketizeAggregationPacket( H265PacketizerContext_t * pCtx,
         tid = pCtx->pNaluArray[ scan_index ].temporal_id;
 
         /* Update minimum values */
-        min_layer_id = H265_MIN( min_layer_id, layer_id );
-        min_tid = H265_MIN( min_tid, tid );
+        min_layer_id = H265_MIN( min_layer_id,
+                                 layer_id );
+        min_tid = H265_MIN( min_tid,
+                            tid );
 
         temp_offset += needed_size;
         scan_index++;
@@ -314,21 +249,12 @@ static void PacketizeAggregationPacket( H265PacketizerContext_t * pCtx,
     pPacket->pPacketData[ offset++ ] = ( naluSize >> 8 ) & 0xFF;
     pPacket->pPacketData[ offset++ ] = naluSize & 0xFF;
 
-    /* Process first NAL unit */
-    if( pCtx->spropMaxDonDiff > 0 )
-    {
-        /* Add DONL */
-        donl = pCtx->pNaluArray[ pCtx->tailIndex ].don;
-        pPacket->pPacketData[ offset++ ] = ( donl >> 8 ) & 0xFF;
-        pPacket->pPacketData[ offset++ ] = donl & 0xFF;
-    }
 
     memcpy( &pPacket->pPacketData[ offset ],
             pCtx->pNaluArray[ pCtx->tailIndex ].pNaluData,
             naluSize );
     offset += naluSize;
 
-    lastDon = pCtx->pNaluArray[ pCtx->tailIndex ].don;
     pCtx->tailIndex++;
     pCtx->naluCount--;
 
@@ -339,16 +265,6 @@ static void PacketizeAggregationPacket( H265PacketizerContext_t * pCtx,
         naluSize = pCtx->pNaluArray[ pCtx->tailIndex ].naluDataLength;
         pPacket->pPacketData[ offset++ ] = ( naluSize >> 8 ) & 0xFF;
         pPacket->pPacketData[ offset++ ] = naluSize & 0xFF;
-
-        /* Add DOND if needed */
-        if( pCtx->spropMaxDonDiff > 0 )
-        {
-            /* Calculate DOND as difference between current and last DON */
-            currentDon = pCtx->pNaluArray[ pCtx->tailIndex ].don;
-            dond = currentDon - lastDon;
-            pPacket->pPacketData[ offset++ ] = dond;
-            lastDon = currentDon;
-        }
 
         memcpy( &pPacket->pPacketData[ offset ],
                 pCtx->pNaluArray[ pCtx->tailIndex ].pNaluData,
@@ -367,48 +283,42 @@ static void PacketizeAggregationPacket( H265PacketizerContext_t * pCtx,
 
 H265Result_t H265Packetizer_Init( H265PacketizerContext_t * pCtx,
                                   H265Nalu_t * pNaluArray,
-                                  size_t naluArrayLength,
-                                  uint16_t spropMaxDonDiff,
-                                  uint16_t maxPacketSize )
+                                  size_t naluArrayLength)
 {
-    H265Result_t result = H265_RESULT_BAD_PARAM; /* Initialize to error case */
+    H265Result_t result = H265_RESULT_OK; /* Initialize to success case */
 
 /* Parameter validation */
-    if( ( pCtx != NULL ) && ( pNaluArray != NULL ) &&
-        ( maxPacketSize != 0 ) && ( naluArrayLength != 0 ) )
+    if( ( pCtx == NULL ) || ( pNaluArray == NULL ) ||
+        ( naluArrayLength == 0 ) )
     {
-        if( spropMaxDonDiff <= MAX_DON_DIFF_VALUE )
-        {
-            result = H265_RESULT_OK;
-
+        result = H265_RESULT_BAD_PARAM;
+    }
+    else
+    {
 /* Initialize NAL array info */
-            pCtx->pNaluArray = pNaluArray;
-            pCtx->naluArrayLength = naluArrayLength;
+        pCtx->pNaluArray = pNaluArray;
+        pCtx->naluArrayLength = naluArrayLength;
 
 /* Initialize array indices */
-            pCtx->headIndex = 0;
-            pCtx->tailIndex = 0;
-            pCtx->naluCount = 0;
-
-/* Initialize configuration */
-            pCtx->spropMaxDonDiff = spropMaxDonDiff;
-            pCtx->maxPacketSize = maxPacketSize;
-            pCtx->donPresent = ( spropMaxDonDiff > 0 ) ? 1 : 0;
+        pCtx->headIndex = 0;
+        pCtx->tailIndex = 0;
+        pCtx->naluCount = 0;
 
 /* Initialize packet state */
-            pCtx->currentlyProcessingPacket = H265_PACKET_NONE;
+        pCtx->currentlyProcessingPacket = H265_PACKET_NONE;
 
 /* Initialize FU and AP states */
-            memset( &pCtx->fuPacketizationState, 0, sizeof( FuPacketizationState_t ) );
-            memset( &pCtx->apPacketizationState, 0, sizeof( ApPacketizationState_t ) );
-
-/* Initialize DON tracking */
-            pCtx->currentDon = 0;
-        }
+        memset( &pCtx->fuPacketizationState,
+                0,
+                sizeof( FuPacketizationState_t ) );
+        memset( &pCtx->apPacketizationState,
+                0,
+                sizeof( ApPacketizationState_t ) );
     }
 
     return result;
 }
+
 
 
 /*-----------------------------------------------------------------------------------------------------*/
@@ -416,32 +326,34 @@ H265Result_t H265Packetizer_Init( H265PacketizerContext_t * pCtx,
 H265Result_t H265Packetizer_AddFrame( H265PacketizerContext_t * pCtx,
                                       H265Frame_t * pFrame )
 {
-    H265Result_t result = H265_RESULT_BAD_PARAM;
-    H265Nalu_t nalu = { 0 };
+    H265Result_t result = H265_RESULT_OK;
+    H265Nalu_t nalu = {0};
     size_t currentIndex = 0, naluStartIndex = 0, remainingFrameLength = 0;
-    uint8_t startCode1[] = { 0x00, 0x00, 0x00, 0x01 }; /* 4-byte start code */
-    uint8_t startCode2[] = { 0x00, 0x00, 0x01 };       /* 3-byte start code */
+    uint8_t startCode1[] = {0x00, 0x00, 0x00, 0x01}; /* 4-byte start code */
+    uint8_t startCode2[] = {0x00, 0x00, 0x01};   /* 3-byte start code */
     uint8_t firstStartCode = 1;
 
-    /* Parameter validation */
-    if( ( pCtx != NULL ) &&
-        ( pFrame != NULL ) &&
-        ( pFrame->pFrameData != NULL ) &&
-        ( pFrame->frameDataLength != 0 ) )
+/* Parameter validation */
+    if( ( pCtx == NULL ) ||
+        ( pFrame == NULL ) ||
+        ( pFrame->pFrameData == NULL ) ||
+        ( pFrame->frameDataLength == 0 ) )
     {
-        result = H265_RESULT_OK;
-
-        /* Process frame data */
+        result = H265_RESULT_BAD_PARAM;
+    }
+    else
+    {
+/* Process frame data */
         while( ( result == H265_RESULT_OK ) &&
                ( currentIndex < pFrame->frameDataLength ) )
         {
             remainingFrameLength = pFrame->frameDataLength - currentIndex;
 
-            /* Check for 4-byte start code */
+/* Check for 4-byte start code */
             if( remainingFrameLength >= sizeof( startCode1 ) )
             {
-                if( memcmp( &( pFrame->pFrameData[ currentIndex ] ),
-                            &( startCode1[ 0 ] ),
+                if( memcmp( &( pFrame->pFrameData[currentIndex] ),
+                            &( startCode1[0] ),
                             sizeof( startCode1 ) ) == 0 )
                 {
                     if( firstStartCode == 1 )
@@ -450,24 +362,25 @@ H265Result_t H265Packetizer_AddFrame( H265PacketizerContext_t * pCtx,
                     }
                     else
                     {
-                        /* Create NAL unit from data between start codes */
-                        nalu.pNaluData = &( pFrame->pFrameData[ naluStartIndex ] );
+/* Create NAL unit from data between start codes */
+                        nalu.pNaluData = &( pFrame->pFrameData[naluStartIndex] );
                         nalu.naluDataLength = currentIndex - naluStartIndex;
 
-                        /* Extract H.265 header fields if NAL unit is big enough */
+/* Extract H.265 header fields if NAL unit is big enough */
                         if( nalu.naluDataLength >= NALU_HEADER_SIZE )
                         {
-                            /* First byte: F bit and Type */
-                            nalu.nal_unit_type = ( nalu.pNaluData[ 0 ] >> 1 ) & 0x3F;
+/* First byte: F bit and Type */
+                            nalu.nal_unit_type = ( nalu.pNaluData[0] >> 1 ) & 0x3F;
 
-                            /* LayerId spans both bytes */
-                            nalu.nal_layer_id = ( ( nalu.pNaluData[ 0 ] & 0x01 ) << 5 ) |
-                                                ( ( nalu.pNaluData[ 1 ] >> 3 ) & 0x1F );
+/* LayerId spans both bytes */
+                            nalu.nal_layer_id = ( ( nalu.pNaluData[0] & 0x01 ) << 5 ) |
+                                                ( ( nalu.pNaluData[1] >> 3 ) & 0x1F );
 
-                            /* Second byte: TID */
-                            nalu.temporal_id = nalu.pNaluData[ 1 ] & 0x07;
+/* Second byte: TID */
+                            nalu.temporal_id = nalu.pNaluData[1] & 0x07;
 
-                            result = H265Packetizer_AddNalu( pCtx, &nalu );
+                            result = H265Packetizer_AddNalu( pCtx,
+                                                             &nalu );
                         }
                         else
                         {
@@ -481,11 +394,11 @@ H265Result_t H265Packetizer_AddFrame( H265PacketizerContext_t * pCtx,
                 }
             }
 
-            /* Check for 3-byte start code */
+/* Check for 3-byte start code */
             if( remainingFrameLength >= sizeof( startCode2 ) )
             {
-                if( memcmp( &( pFrame->pFrameData[ currentIndex ] ),
-                            &( startCode2[ 0 ] ),
+                if( memcmp( &( pFrame->pFrameData[currentIndex] ),
+                            &( startCode2[0] ),
                             sizeof( startCode2 ) ) == 0 )
                 {
                     if( firstStartCode == 1 )
@@ -494,19 +407,20 @@ H265Result_t H265Packetizer_AddFrame( H265PacketizerContext_t * pCtx,
                     }
                     else
                     {
-                        /* Create NAL unit from data between start codes */
-                        nalu.pNaluData = &( pFrame->pFrameData[ naluStartIndex ] );
+/* Create NAL unit from data between start codes */
+                        nalu.pNaluData = &( pFrame->pFrameData[naluStartIndex] );
                         nalu.naluDataLength = currentIndex - naluStartIndex;
 
-                        /* Extract H.265 header fields if NAL unit is big enough */
+/* Extract H.265 header fields if NAL unit is big enough */
                         if( nalu.naluDataLength >= NALU_HEADER_SIZE )
                         {
-                            nalu.nal_unit_type = ( nalu.pNaluData[ 0 ] >> 1 ) & 0x3F;
-                            nalu.nal_layer_id = ( ( nalu.pNaluData[ 0 ] & 0x01 ) << 5 ) |
-                                                ( ( nalu.pNaluData[ 1 ] >> 3 ) & 0x1F );
-                            nalu.temporal_id = nalu.pNaluData[ 1 ] & 0x07;
+                            nalu.nal_unit_type = ( nalu.pNaluData[0] >> 1 ) & 0x3F;
+                            nalu.nal_layer_id = ( ( nalu.pNaluData[0] & 0x01 ) << 5 ) |
+                                                ( ( nalu.pNaluData[1] >> 3 ) & 0x1F );
+                            nalu.temporal_id = nalu.pNaluData[1] & 0x07;
 
-                            result = H265Packetizer_AddNalu( pCtx, &nalu );
+                            result = H265Packetizer_AddNalu( pCtx,
+                                                             &nalu );
                         }
                         else
                         {
@@ -523,20 +437,21 @@ H265Result_t H265Packetizer_AddFrame( H265PacketizerContext_t * pCtx,
             currentIndex++;
         }
 
-        /* Handle last NAL unit in frame */
+/* Handle last NAL unit in frame */
         if( ( result == H265_RESULT_OK ) && ( naluStartIndex > 0 ) )
         {
-            nalu.pNaluData = &( pFrame->pFrameData[ naluStartIndex ] );
+            nalu.pNaluData = &( pFrame->pFrameData[naluStartIndex] );
             nalu.naluDataLength = pFrame->frameDataLength - naluStartIndex;
 
             if( nalu.naluDataLength >= NALU_HEADER_SIZE )
             {
-                nalu.nal_unit_type = ( nalu.pNaluData[ 0 ] >> 1 ) & 0x3F;
-                nalu.nal_layer_id = ( ( nalu.pNaluData[ 0 ] & 0x01 ) << 5 ) |
-                                    ( ( nalu.pNaluData[ 1 ] >> 3 ) & 0x1F );
-                nalu.temporal_id = nalu.pNaluData[ 1 ] & 0x07;
+                nalu.nal_unit_type = ( nalu.pNaluData[0] >> 1 ) & 0x3F;
+                nalu.nal_layer_id = ( ( nalu.pNaluData[0] & 0x01 ) << 5 ) |
+                                    ( ( nalu.pNaluData[1] >> 3 ) & 0x1F );
+                nalu.temporal_id = nalu.pNaluData[1] & 0x07;
 
-                result = H265Packetizer_AddNalu( pCtx, &nalu );
+                result = H265Packetizer_AddNalu( pCtx,
+                                                 &nalu );
             }
             else
             {
@@ -547,6 +462,7 @@ H265Result_t H265Packetizer_AddFrame( H265PacketizerContext_t * pCtx,
 
     return result;
 }
+
 
 /*-----------------------------------------------------------------------------------------------------*/
 
@@ -583,9 +499,6 @@ H265Result_t H265Packetizer_AddNalu( H265PacketizerContext_t * pCtx,
         pCtx->pNaluArray[ pCtx->headIndex ].nal_layer_id = pNalu->nal_layer_id;
         pCtx->pNaluArray[ pCtx->headIndex ].temporal_id = pNalu->temporal_id;
 
-/* Add this line to copy the DON value */
-        pCtx->pNaluArray[ pCtx->headIndex ].don = pNalu->don;
-
 /* Update indices */
         pCtx->headIndex++;
         pCtx->naluCount++;
@@ -600,113 +513,99 @@ H265Result_t H265Packetizer_AddNalu( H265PacketizerContext_t * pCtx,
 H265Result_t H265Packetizer_GetPacket( H265PacketizerContext_t * pCtx,
                                        H265Packet_t * pPacket )
 {
-    H265Result_t result = H265_RESULT_BAD_PARAM;
+    H265Result_t result = H265_RESULT_OK;
     size_t minRequiredSize = 0;
     size_t singleNalSize = 0;
     size_t totalSize = 0;
     size_t nalusToAggregate = 0;
     size_t tempIndex = 0;
 
-    if( ( pCtx != NULL ) && ( pPacket != NULL ) &&
-        ( pPacket->pPacketData != NULL ) && ( pPacket->maxPacketSize != 0 ) )
+/* Parameter validation */
+    if( ( pCtx == NULL ) || ( pPacket == NULL ) ||
+        ( pPacket->pPacketData == NULL ) || (pPacket->maxPacketSize == 0))
+    {
+        result = H265_RESULT_BAD_PARAM;
+    }
+    else
     {
         minRequiredSize = NALU_HEADER_SIZE + 1; /* Minimum size for any packet */
 
-        if( pCtx->spropMaxDonDiff > 0 )
+        if( pPacket->maxPacketSize < minRequiredSize )
         {
-            minRequiredSize += DONL_FIELD_SIZE; /* Add DONL size if needed */
+            result = H265_RESULT_BAD_PARAM;
         }
-
-        if( pPacket->maxPacketSize >= minRequiredSize )
+        else if( pCtx->naluCount == 0 )
         {
-            if( pCtx->naluCount > 0 )
-            {
-                result = H265_RESULT_OK;
-
+            result = H265_RESULT_NO_MORE_NALUS;
+        }
+        else
+        {
 /* Main processing */
-                if( pCtx->currentlyProcessingPacket == H265_FU_PACKET )
-                {
-                    PacketizeFragmentationUnitPacket( pCtx, pPacket );
-                }
-                else
-                {
+            if( pCtx->currentlyProcessingPacket == H265_FU_PACKET )
+            {
+                PacketizeFragmentationUnitPacket( pCtx,
+                                                  pPacket );
+            }
+            else
+            {
 /* Check if NAL fits in single packet */
-                    singleNalSize = pCtx->pNaluArray[ pCtx->tailIndex ].naluDataLength;
+                singleNalSize = pCtx->pNaluArray[pCtx->tailIndex].naluDataLength;
 
-                    if( pCtx->spropMaxDonDiff > 0 )
-                    {
-                        singleNalSize += DONL_FIELD_SIZE;
-                    }
-
-                    if( singleNalSize <= pPacket->maxPacketSize )
-                    {
+                if( singleNalSize <= pPacket->maxPacketSize )
+                {
 /* Could fit as single NAL, but check if aggregation possible */
-                        if( ( pCtx->naluCount >= 2 ) &&
-                            ( pCtx->tailIndex < pCtx->naluArrayLength - 1 ) )
-                        {
+                    if( ( pCtx->naluCount >= 2 ) &&
+                        ( pCtx->tailIndex < pCtx->naluArrayLength - 1 ) )
+                    {
 /* Calculate maximum NALs we can aggregate */
-                            totalSize = AP_HEADER_SIZE;
-                            nalusToAggregate = 0;
-                            tempIndex = pCtx->tailIndex;
+                        totalSize = AP_HEADER_SIZE;
+                        nalusToAggregate = 0;
+                        tempIndex = pCtx->tailIndex;
 
 /* Keep adding NALs until we can't fit more */
-                            while( ( tempIndex < pCtx->naluArrayLength ) &&
-                                   ( nalusToAggregate < pCtx->naluCount ) )
-                            {
-                                size_t nextNalSize = pCtx->pNaluArray[ tempIndex ].naluDataLength;
-                                size_t headerSize = AP_NALU_LENGTH_FIELD_SIZE;
-
-                                /* Add DONL/DOND if needed */
-                                if( pCtx->spropMaxDonDiff > 0 )
-                                {
-                                    if( nalusToAggregate == 0 )
-                                    {
-                                        headerSize += DONL_FIELD_SIZE;
-                                    }
-                                    else
-                                    {
-                                        headerSize += AP_DOND_SIZE;
-                                    }
-                                }
+                        while( ( tempIndex < pCtx->naluArrayLength ) &&
+                               ( nalusToAggregate < pCtx->naluCount ) )
+                        {
+                            size_t nextNalSize = pCtx->pNaluArray[tempIndex].naluDataLength;
+                            size_t headerSize = AP_NALU_LENGTH_FIELD_SIZE;
 
 /* Check if this NAL would fit */
-                                if( ( totalSize + nextNalSize + headerSize ) <= pPacket->maxPacketSize )
-                                {
-                                    totalSize += nextNalSize + headerSize;
-                                    nalusToAggregate++;
-                                    tempIndex++;
-                                }
-                                else
-                                {
-                                    break;
-                                }
-                            }
-
-/* If we can aggregate at least 2 NALs */
-                            if( nalusToAggregate >= 2 )
+                            if( ( totalSize + nextNalSize + headerSize ) <= pPacket->maxPacketSize )
                             {
-                                PacketizeAggregationPacket( pCtx, pPacket );
+                                totalSize += nextNalSize + headerSize;
+                                nalusToAggregate++;
+                                tempIndex++;
                             }
                             else
                             {
-                                PacketizeSingleNaluPacket( pCtx, pPacket );
+                                break;
                             }
+                        }
+
+/* If we can aggregate at least 2 NALs */
+                        if( nalusToAggregate >= 2 )
+                        {
+                            PacketizeAggregationPacket( pCtx,
+                                                        pPacket );
                         }
                         else
                         {
-                            PacketizeSingleNaluPacket( pCtx, pPacket );
+                            PacketizeSingleNaluPacket( pCtx,
+                                                       pPacket );
                         }
                     }
                     else
                     {
-/* NAL too big, use fragmentation */
-                        PacketizeFragmentationUnitPacket( pCtx, pPacket );
+                        PacketizeSingleNaluPacket( pCtx,
+                                                   pPacket );
                     }
                 }
-            }
-            else
-            {
-                result = H265_RESULT_NO_MORE_NALUS;
+                else
+                {
+/* NAL too big, use fragmentation */
+                    PacketizeFragmentationUnitPacket( pCtx,
+                                                      pPacket );
+                }
             }
         }
     }
@@ -714,5 +613,6 @@ H265Result_t H265Packetizer_GetPacket( H265PacketizerContext_t * pCtx,
     return result;
 }
 
-
 /*-----------------------------------------------------------------------------------------------------*/
+
+

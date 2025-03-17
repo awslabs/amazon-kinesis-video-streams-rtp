@@ -9,9 +9,8 @@ typedef struct FuDepacketizationState
 {
     uint16_t payloadHdr;     /* 2 bytes for HEVC */
     uint8_t fuHeader;        /* S, E, and Type bits */
-    uint8_t originalNalType; /* Original NAL unit type */
-    size_t reassembledLength;
-    uint16_t donl;           /* For DON handling if needed */
+    uint8_t originalNalType; 
+    size_t reassembledLength;          
     uint8_t * pReassemblyBuffer;
     size_t reassemblyBufferSize;
 } FuDepacketizationState_t;
@@ -42,16 +41,12 @@ typedef struct H265DePacketizerContext
     FuDepacketizationState_t fuDepacketizationState;
     ApDepacketizationState_t apDepacketizationState;
 
-    /* DON tracking */
-    uint16_t currentDon;
-    uint8_t donPresent;        /* If DON fields are present (1=present, 0=not present) */
 } H265DepacketizerContext_t;
 
 /* Function declarations */
 H265Result_t H265Depacketizer_Init( H265DepacketizerContext_t * pCtx,
                                     H265Packet_t * pPacketsArray,
-                                    size_t packetsArrayLength,
-                                    uint8_t donPresent );
+                                    size_t packetsArrayLength);
 
 H265Result_t H265Depacketizer_AddPacket( H265DepacketizerContext_t * pCtx,
                                          const H265Packet_t * pPacket );

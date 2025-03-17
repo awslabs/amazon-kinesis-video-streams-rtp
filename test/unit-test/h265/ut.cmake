@@ -27,7 +27,8 @@ list(APPEND mock_define_list
 
 # List the files you would like to test here.
 list(APPEND real_source_files
-            ${MODULE_ROOT_DIR}/codec_packetizers/h265/h265_packetizer.c          
+            ${MODULE_ROOT_DIR}/codec_packetizers/h265/h265_packetizer.c   
+            ${MODULE_ROOT_DIR}/codec_packetizers/h265/h265_depacketizer.c       
         )
 # List the directories the module under test includes.
 list(APPEND real_include_directories

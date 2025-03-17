@@ -10,7 +10,6 @@ typedef struct FuPacketizationState
     uint8_t fuHeader;        /* S, E, and Type bits */
     size_t naluDataIndex;
     size_t remainingNaluLength;
-    uint16_t donl;          /* For DON handling if needed */
 } FuPacketizationState_t;
 
 
@@ -18,8 +17,6 @@ typedef struct FuPacketizationState
 /* Aggregation Unit structure */
 typedef struct H265AggregationUnitHeader
 {
-    uint16_t donl;           /* For first unit */
-    uint8_t dond;            /* For subsequent units */
     uint16_t nalu_size;
     uint16_t nalu_header;
     uint8_t * pPayload;
@@ -45,7 +42,6 @@ typedef struct H265PacketizerContext
     size_t naluCount;
 
     /* Configuration */
-    uint16_t spropMaxDonDiff; /* DON handling */
     uint16_t maxPacketSize;   /* For fragmentation/aggregation decisions */
 
     /* Current state */
@@ -53,17 +49,12 @@ typedef struct H265PacketizerContext
     FuPacketizationState_t fuPacketizationState;
     ApPacketizationState_t apPacketizationState;
 
-    /* DON tracking */
-    uint16_t currentDon;      /* Current DON value */
-    uint8_t donPresent;       /* If DON fields are present (1=present, 0=not present) */
 } H265PacketizerContext_t;
 
 /* Function declarations */
 H265Result_t H265Packetizer_Init( H265PacketizerContext_t * pCtx,
                                   H265Nalu_t * pNaluArray,
-                                  size_t naluArrayLength,
-                                  uint16_t spropMaxDonDiff,
-                                  uint16_t maxPacketSize );
+                                  size_t naluArrayLength);
 
 H265Result_t H265Packetizer_AddFrame( H265PacketizerContext_t * pCtx,
                                       H265Frame_t * pFrame );
