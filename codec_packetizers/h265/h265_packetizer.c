@@ -119,7 +119,7 @@ static void PacketizeFragmentationUnitPacket( H265PacketizerContext_t * pCtx,
     headerSize = TOTAL_FU_HEADER_SIZE;     /* PayloadHdr(2) + FUHeader(1) */
 
     /* Calculate maximum payload size for this packet */
-    maxPayloadSize = ( pPacket->maxPacketSize > headerSize ) ? pPacket->maxPacketSize - headerSize : 0;
+    maxPayloadSize = ( pPacket->packetDataLength > headerSize ) ? pPacket->packetDataLength - headerSize : 0;
 
     /* Calculate actual payload size for this fragment */
     payloadSize = ( pCtx->fuPacketizationState.remainingNaluLength <= maxPayloadSize ) ? pCtx->fuPacketizationState.remainingNaluLength : maxPayloadSize;
@@ -205,7 +205,7 @@ static void PacketizeAggregationPacket( H265PacketizerContext_t * pCtx,
     uint8_t min_tid = MAX_TEMPORAL_ID;
 
     size_t temp_offset = 2;              /* Start after PayloadHdr */
-    size_t availableSize = pPacket->maxPacketSize;
+    size_t availableSize = pPacket->packetDataLength;
     size_t scan_index = pCtx->tailIndex; /* Start with first NAL */
 
     /* Scan NALs to find minimums and check size */
@@ -522,7 +522,7 @@ H265Result_t H265Packetizer_GetPacket( H265PacketizerContext_t * pCtx,
 
 /* Parameter validation */
     if( ( pCtx == NULL ) || ( pPacket == NULL ) ||
-        ( pPacket->pPacketData == NULL ) || (pPacket->maxPacketSize == 0))
+        ( pPacket->pPacketData == NULL ) || (pPacket->packetDataLength == 0))
     {
         result = H265_RESULT_BAD_PARAM;
     }
@@ -530,7 +530,7 @@ H265Result_t H265Packetizer_GetPacket( H265PacketizerContext_t * pCtx,
     {
         minRequiredSize = NALU_HEADER_SIZE + 1; /* Minimum size for any packet */
 
-        if( pPacket->maxPacketSize < minRequiredSize )
+        if( pPacket->packetDataLength < minRequiredSize )
         {
             result = H265_RESULT_BAD_PARAM;
         }
@@ -551,7 +551,7 @@ H265Result_t H265Packetizer_GetPacket( H265PacketizerContext_t * pCtx,
 /* Check if NAL fits in single packet */
                 singleNalSize = pCtx->pNaluArray[pCtx->tailIndex].naluDataLength;
 
-                if( singleNalSize <= pPacket->maxPacketSize )
+                if( singleNalSize <= pPacket->packetDataLength )
                 {
 /* Could fit as single NAL, but check if aggregation possible */
                     if( ( pCtx->naluCount >= 2 ) &&
@@ -570,7 +570,7 @@ H265Result_t H265Packetizer_GetPacket( H265PacketizerContext_t * pCtx,
                             size_t headerSize = AP_NALU_LENGTH_FIELD_SIZE;
 
 /* Check if this NAL would fit */
-                            if( ( totalSize + nextNalSize + headerSize ) <= pPacket->maxPacketSize )
+                            if( ( totalSize + nextNalSize + headerSize ) <= pPacket->packetDataLength )
                             {
                                 totalSize += nextNalSize + headerSize;
                                 nalusToAggregate++;

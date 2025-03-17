@@ -41,9 +41,6 @@ typedef struct H265PacketizerContext
     size_t tailIndex;
     size_t naluCount;
 
-    /* Configuration */
-    uint16_t maxPacketSize;   /* For fragmentation/aggregation decisions */
-
     /* Current state */
     H265PacketType_t currentlyProcessingPacket;
     FuPacketizationState_t fuPacketizationState;

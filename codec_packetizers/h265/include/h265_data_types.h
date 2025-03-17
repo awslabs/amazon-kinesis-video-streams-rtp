@@ -141,7 +141,6 @@ typedef struct H265Packet
 {
     uint8_t * pPacketData;
     size_t packetDataLength;
-    size_t maxPacketSize;
 } H265Packet_t;
 
 typedef struct H265Nalu
