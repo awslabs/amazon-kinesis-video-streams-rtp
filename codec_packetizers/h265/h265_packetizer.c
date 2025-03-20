@@ -36,7 +36,7 @@ static void PacketizeSingleNaluPacket( H265PacketizerContext_t * pCtx,
     /* Copy NAL header from context to output */
     memcpy( &( pPacket->pPacketData[ 0 ] ),
             &( pCtx->pNaluArray[ pCtx->tailIndex ].pNaluData[ 0 ] ),
-            pCtx->pNaluArray[ pCtx->tailIndex ].naluDataLength  );
+            pCtx->pNaluArray[ pCtx->tailIndex ].naluDataLength );
 
     pPacket->packetDataLength = pCtx->pNaluArray[ pCtx->tailIndex ].naluDataLength;
 
@@ -166,6 +166,9 @@ static void PacketizeFragmentationUnitPacket( H265PacketizerContext_t * pCtx,
     /* Check if this was the last fragment */
     if( pCtx->fuPacketizationState.remainingNaluLength == 0 )
     {
+        pCtx->fuPacketizationState.naluDataIndex = 0;
+        pCtx->fuPacketizationState.payloadHdr = 0;
+
         pCtx->currentlyProcessingPacket = H265_PACKET_NONE;
         pCtx->tailIndex++;
         pCtx->naluCount--;
@@ -283,7 +286,7 @@ static void PacketizeAggregationPacket( H265PacketizerContext_t * pCtx,
 
 H265Result_t H265Packetizer_Init( H265PacketizerContext_t * pCtx,
                                   H265Nalu_t * pNaluArray,
-                                  size_t naluArrayLength)
+                                  size_t naluArrayLength )
 {
     H265Result_t result = H265_RESULT_OK; /* Initialize to success case */
 
@@ -522,7 +525,7 @@ H265Result_t H265Packetizer_GetPacket( H265PacketizerContext_t * pCtx,
 
 /* Parameter validation */
     if( ( pCtx == NULL ) || ( pPacket == NULL ) ||
-        ( pPacket->pPacketData == NULL ) || (pPacket->packetDataLength == 0))
+        ( pPacket->pPacketData == NULL ) || ( pPacket->packetDataLength == 0 ) )
     {
         result = H265_RESULT_BAD_PARAM;
     }

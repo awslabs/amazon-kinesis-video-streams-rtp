@@ -385,7 +385,6 @@ static H265Result_t H265Depacketizer_ProcessFragmentationUnit( H265DepacketizerC
             {
                 .pPacketData = pCtx->fuDepacketizationState.pReassemblyBuffer,
                 .packetDataLength = totalLength,
-                .maxPacketSize = pCtx->fuDepacketizationState.reassemblyBufferSize
             };
 
             H265Depacketizer_SetNalu(
