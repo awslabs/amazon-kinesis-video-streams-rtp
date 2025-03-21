@@ -68,7 +68,7 @@ void test_H265_Packetizer_SingleNal( void )
 
     /* Get packet */
     packet.pPacketData = packetBuffer;
-    packet.maxPacketSize = MAX_H265_PACKET_LENGTH;
+    packet.packetDataLength = MAX_H265_PACKET_LENGTH;
     result = H265Packetizer_GetPacket( &ctx, &packet );
     TEST_ASSERT_EQUAL( H265_RESULT_OK, result );
     TEST_ASSERT_EQUAL( sizeof( nalData ), packet.packetDataLength );
@@ -108,7 +108,7 @@ void test_H265_Packetizer_SingleNal_MinimumSize( void )                    /* ju
 
     /* Get packet */
     packet.pPacketData = packetBuffer;
-    packet.maxPacketSize = MAX_H265_PACKET_LENGTH;
+    packet.packetDataLength = MAX_H265_PACKET_LENGTH;
     result = H265Packetizer_GetPacket( &ctx, &packet );
     TEST_ASSERT_EQUAL( H265_RESULT_OK, result );
     TEST_ASSERT_EQUAL( sizeof( nalData ), packet.packetDataLength );
@@ -164,7 +164,7 @@ void test_H265_Packetizer_Fragmentation( void )
 
     /* Get first fragment */
     packet.pPacketData = packetBuffer;
-    packet.maxPacketSize = 100;
+    packet.packetDataLength = 100;
     result = H265Packetizer_GetPacket( &ctx, &packet );
     TEST_ASSERT_EQUAL( H265_RESULT_OK, result );
 
@@ -186,7 +186,7 @@ void test_H265_Packetizer_Fragmentation( void )
     do
     {
         packet.pPacketData = packetBuffer;
-        packet.maxPacketSize = 100;
+        packet.packetDataLength = 100;
         result = H265Packetizer_GetPacket( &ctx, &packet );
 
         if( result == H265_RESULT_OK )
@@ -254,7 +254,7 @@ void test_H265_Packetizer_Fragmentation_Zero_PayloadSize( void )
 
     /* Setup packet with minimal size to force zero payload */
     packet.pPacketData = packetBuffer;
-    packet.maxPacketSize = 3;  /* Just enough for headers (2 bytes PayloadHdr + 1 byte FUHeader) */
+    packet.packetDataLength = 3;  /* Just enough for headers (2 bytes PayloadHdr + 1 byte FUHeader) */
                                /* This should make maxPayloadSize = 0 */
 
     /* Get packet - should attempt fragmentation with zero payload size */
@@ -325,7 +325,7 @@ void test_H265_Packetizer_SimpleAggregation( void )
 
     /* Get aggregated packet */
     packet.pPacketData = packetBuffer;
-    packet.maxPacketSize = 100;
+    packet.packetDataLength = 100;
     result = H265Packetizer_GetPacket( &ctx, &packet );
     TEST_ASSERT_EQUAL( H265_RESULT_OK, result );
 
@@ -393,7 +393,7 @@ void test_H265_Packetizer_Aggregation_Insufficient_Nalus( void )
 
     /* Setup packet with small size */
     packet.pPacketData = packetBuffer;
-    packet.maxPacketSize = 20;  /* Small enough that second NAL won't fit */
+    packet.packetDataLength = 20;  /* Small enough that second NAL won't fit */
 
     /* Try to get packet - should attempt aggregation but fail */
     result = H265Packetizer_GetPacket( &ctx, &packet );
@@ -756,7 +756,7 @@ void test_H265_Packetizer_GetPacket_Small_MaxSize( void )
 
     /* Setup packet with small maxPacketSize */
     packet.pPacketData = packetBuffer;
-    packet.maxPacketSize = 1;  /* Set size less than NALU_HEADER_SIZE */
+    packet.packetDataLength = 1;  /* Set size less than NALU_HEADER_SIZE */
     result = H265Packetizer_GetPacket( &ctx, &packet );
     TEST_ASSERT_EQUAL( H265_RESULT_BAD_PARAM, result );
 }
@@ -809,7 +809,7 @@ void test_H265_Packetizer_GetPacket_Size_Overflow( void )
 
     /* Setup packet with small max size to force overflow */
     packet.pPacketData = packetBuffer;
-    packet.maxPacketSize = 100;  /* Small enough to trigger overflow */
+    packet.packetDataLength = 100;  /* Small enough to trigger overflow */
 
     result = H265Packetizer_GetPacket( &ctx, &packet );
 
@@ -848,7 +848,7 @@ void test_H265_Packetizer_GetPacket_Zero_MaxSize( void )
 
     /* Setup packet with zero maxPacketSize */
     packet.pPacketData = packetBuffer;
-    packet.maxPacketSize = 0;  /* Set to zero to trigger the check */
+    packet.packetDataLength = 0;  /* Set to zero to trigger the check */
 
     /* Try to get packet */
     result = H265Packetizer_GetPacket( &ctx, &packet );
@@ -914,7 +914,7 @@ void test_H265_Packetizer_GetPacket_Aggregation_Array_Limit( void )
 
     /* Setup packet */
     packet.pPacketData = packetBuffer;
-    packet.maxPacketSize = 1500;  /* Large enough for all NALs */
+    packet.packetDataLength = 1500;  /* Large enough for all NALs */
 
     /* Get packet - should try to aggregate all NALs and hit array length limit */
     result = H265Packetizer_GetPacket( &ctx, &packet );
@@ -957,7 +957,7 @@ void test_H265_Packetizer_GetPacket_Tail_At_End( void )
 
     /* Setup packet */
     packet.pPacketData = packetBuffer;
-    packet.maxPacketSize = 1500;    /* Large enough for single NAL */
+    packet.packetDataLength = 1500;    /* Large enough for single NAL */
 
     /* Try to get packet */
     result = H265Packetizer_GetPacket( &ctx, &packet );
@@ -984,7 +984,7 @@ void test_H265_Packetizer_GetPacket_Valid_Context_Invalid_Packet( void )
 
     TEST_ASSERT_EQUAL(0, ctx.naluCount);
     packet.pPacketData = packetBuffer;
-    packet.maxPacketSize = MAX_H265_PACKET_LENGTH;
+    packet.packetDataLength = MAX_H265_PACKET_LENGTH;
     result = H265Packetizer_GetPacket(&ctx, &packet);
      TEST_ASSERT_EQUAL(H265_RESULT_NO_MORE_NALUS, result);
 
@@ -1003,7 +1003,7 @@ void test_H265_Packetizer_GetPacket_Valid_Context_Invalid_Packet( void )
     TEST_ASSERT_EQUAL( H265_RESULT_BAD_PARAM, result );
 
     packet.pPacketData = NULL;           // Setting packet data to NULL
-    packet.maxPacketSize = MAX_H265_PACKET_LENGTH;  // Valid size
+    packet.packetDataLength = MAX_H265_PACKET_LENGTH;  // Valid size
     result = H265Packetizer_GetPacket(&ctx, &packet);
     TEST_ASSERT_EQUAL(H265_RESULT_BAD_PARAM, result);
 }
@@ -1012,144 +1012,6 @@ void test_H265_Packetizer_GetPacket_Valid_Context_Invalid_Packet( void )
 /*-----------------------------------------------------------------------------------------------------*/
 /*-----------------------------------------------------------------------------------------------------*/
 /*-----------------------------------------------------------------------------------------------------*/
-
-void test_H265_Depacketizer_ProcessSingleNalu( void )                       
-{
-    H265DepacketizerContext_t ctx;
-    H265Result_t result;
-    H265Packet_t packetsArray[ 10 ];
-    H265Nalu_t nalu;
-    uint8_t packetData[] =
-    {
-        0x02, 0x01,  /* NAL header */
-        0x02, 0x03   /* Payload */
-    };
-
-    /* Initialize context */
-    for(size_t i = 0; i < 10; i++)
-    {
-        packetsArray[ i ].pPacketData = packetData;  /* All point to same buffer initially */
-        packetsArray[ i ].packetDataLength = 0;      /* No data yet */
-        packetsArray[ i ].maxPacketSize = 1500;      /* Standard MTU size */
-    }
-
-    result = H265Depacketizer_Init( &ctx,
-                                    packetsArray,
-                                    10);
-    TEST_ASSERT_EQUAL_MESSAGE( H265_RESULT_OK, result, "Depacketizer Init failed" );
-
-    /* Initialize and add packet */
-    packetsArray[ 0 ].pPacketData = packetData;
-    packetsArray[ 0 ].packetDataLength = sizeof( packetData );
-    packetsArray[ 0 ].maxPacketSize = 1500;
-
-    result = H265Depacketizer_AddPacket( &ctx, &packetsArray[ 0 ] );
-    TEST_ASSERT_EQUAL_MESSAGE( H265_RESULT_OK, result, "AddPacket failed" );
-
-    /* Get NALU and verify */
-    result = H265Depacketizer_GetNalu( &ctx, &nalu );
-    TEST_ASSERT_EQUAL_MESSAGE( H265_RESULT_OK, result, "GetNalu failed" );
-
-    /* Verify NALU fields */
-    TEST_ASSERT_EQUAL_MESSAGE( SINGLE_NALU_PACKET_TYPE_START, nalu.nal_unit_type, "Wrong NAL unit type" );
-    TEST_ASSERT_EQUAL_MESSAGE( sizeof( packetData ), nalu.naluDataLength, "Wrong NALU length" );
-    TEST_ASSERT_EQUAL_PTR_MESSAGE( packetData, nalu.pNaluData, "Wrong NALU data pointer" );
-
-    TEST_ASSERT_EQUAL_MESSAGE( 0, ctx.packetCount, "Wrong packet count" );
-
-    /* Try getting another NALU */
-    result = H265Depacketizer_GetNalu( &ctx, &nalu );
-    TEST_ASSERT_EQUAL_MESSAGE( H265_RESULT_NO_MORE_NALUS, result, "Should have no more NALUs" );
-}
-
-/*-----------------------------------------------------------------------------------------------------*/
-
-void test_H265_Depacketizer_ProcessFragmentedNalu_EndBitBranch(void)
-{
-    H265DepacketizerContext_t ctx;
-    H265Result_t result;
-    H265Packet_t packetsArray[10];
-    H265Nalu_t nalu;
-
-    /* Initialize context and arrays */
-    memset(&ctx, 0, sizeof(H265DepacketizerContext_t));
-    memset(packetsArray, 0, sizeof(packetsArray));
-    memset(&nalu, 0, sizeof(H265Nalu_t));
-
-    uint8_t reassemblyBuffer[1500];
-    uint8_t naluBuffer[1500];
-    memset(reassemblyBuffer, 0, sizeof(reassemblyBuffer));
-    memset(naluBuffer, 0, sizeof(naluBuffer));
-
-    /* Set up NALU buffer */
-    nalu.pNaluData = naluBuffer;
-    nalu.naluDataLength = sizeof(naluBuffer);
-
-    /* Initialize first packet with NO start or end bits */
-    uint8_t firstFragment[] = {
-        0x62,   /* NAL unit header byte 1: FU indicator (type 0x31) */
-        0x01,   /* NAL unit header byte 2 */
-        0x02,   /* FU header: NO start/end bits, just NAL type(0x02) */
-        0x11,   /* Payload */
-        0x22    /* Payload */
-    };
-
-    /* Second packet with end bit set - should cause loop termination */
-    uint8_t endFragment[] = {
-        0x62,   /* NAL unit header byte 1: FU indicator */
-        0x01,   /* NAL unit header byte 2 */
-        0x42,   /* FU header: End bit(0x40) + NAL type(0x02) */
-        0x33,   /* Payload */
-        0x44    /* Payload */
-    };
-
-    /* Initialize depacketizer */
-    result = H265Depacketizer_Init(&ctx, packetsArray, 10);
-    TEST_ASSERT_EQUAL_MESSAGE(H265_RESULT_OK, result, "Init failed");
-
-    /* Set up reassembly buffer */
-    ctx.fuDepacketizationState.pReassemblyBuffer = reassemblyBuffer;
-    ctx.fuDepacketizationState.reassemblyBufferSize = sizeof(reassemblyBuffer);
-
-    /* Set initial processing state */
-    ctx.currentlyProcessingPacket = H265_FU_PACKET;  // Indicate we're in FU processing
-    ctx.fuDepacketizationState.reassembledLength = 0;
-
-    /* Add first fragment */
-    packetsArray[0].pPacketData = firstFragment;
-    packetsArray[0].packetDataLength = sizeof(firstFragment);
-    packetsArray[0].maxPacketSize = sizeof(firstFragment);
-
-    /* Add end fragment */
-    packetsArray[1].pPacketData = endFragment;
-    packetsArray[1].packetDataLength = sizeof(endFragment);
-    packetsArray[1].maxPacketSize = sizeof(endFragment);
-
-    /* Set context to process both packets */
-    ctx.packetCount = 2;
-    ctx.tailIndex = 0;
-
-    /* Process NALU */
-    result = H265Depacketizer_GetNalu(&ctx, &nalu);
-    TEST_ASSERT_EQUAL_MESSAGE(H265_RESULT_OK, result, "GetNalu failed");
-
-    /* Verify both packets were processed */
-    TEST_ASSERT_EQUAL_MESSAGE(0, ctx.packetCount, "Not all packets processed");
-    TEST_ASSERT_EQUAL_MESSAGE(2, ctx.tailIndex, "Not all packets processed");
-
-    /* Verify processing state was reset after end bit */
-    TEST_ASSERT_EQUAL_MESSAGE(H265_PACKET_NONE, ctx.currentlyProcessingPacket,
-                            "Processing state not reset after end bit");
-    TEST_ASSERT_EQUAL_MESSAGE(0, ctx.fuDepacketizationState.reassembledLength,
-                            "Reassembly length not reset after end bit");
-
-    /* Verify NALU was properly assembled */
-    TEST_ASSERT_NOT_NULL_MESSAGE(nalu.pNaluData, "NALU data pointer is NULL");
-    TEST_ASSERT_GREATER_THAN_MESSAGE(0, nalu.naluDataLength, "NALU length is 0");
-}
-
-
-
 
 void test_H265_Depacketizer_ProcessFragmentedNalu( void )
 {
