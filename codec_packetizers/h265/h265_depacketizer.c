@@ -126,7 +126,7 @@ static H265Result_t H265Depacketizer_ProcessFragmentationUnit( H265DepacketizerC
             }
         }
 /* If not start bit, verify we're in FU processing state */
-        else if(  pCtx->currentlyProcessingPacket != H265_FU_PACKET )
+        else if( pCtx->currentlyProcessingPacket != H265_FU_PACKET )
         {
             result = H265_RESULT_MALFORMED_PACKET;
         }
@@ -181,7 +181,7 @@ static H265Result_t H265Depacketizer_ProcessFragmentationUnit( H265DepacketizerC
             H265Packet_t tempPacket =
             {
                 .pPacketData = pCtx->fuDepacketizationState.pReassemblyBuffer,
-                .packetDataLength = totalLength,   
+                .packetDataLength = totalLength,
             };
 
             H265Depacketizer_SetNalu(
@@ -229,7 +229,7 @@ static H265Result_t H265Depacketizer_ProcessAggregationPacket( H265DepacketizerC
 /* Calculate minimum required size */
     minSize = AP_HEADER_SIZE + ( 2 * AP_NALU_LENGTH_FIELD_SIZE + 2 * NALU_HEADER_SIZE );
 
-    if( pCurrentPacket->packetDataLength >= minSize )
+    if( pCurrentPacket->packetDataLength > minSize )
     {
 /* If this is first NAL unit in AP, initialize state */
         if( pCtx->currentlyProcessingPacket != H265_AP_PACKET )
@@ -248,23 +248,15 @@ static H265Result_t H265Depacketizer_ProcessAggregationPacket( H265DepacketizerC
 /* Validate NALU size */
             if( offset + nalu_size <= pCurrentPacket->packetDataLength )
             {
-                /* Add buffer size check */
-                if( nalu_size <= pNalu->naluDataLength )
-                {
-                    /* Set NALU fields for first unit */
-                    H265Depacketizer_SetNalu( pCurrentPacket,
-                                              pNalu,
-                                              offset,
-                                              nalu_size );
+                /* Set NALU fields for first unit */
+                H265Depacketizer_SetNalu( pCurrentPacket,
+                                          pNalu,
+                                          offset,
+                                          nalu_size );
 
-                    /* Update offset for next time */
-                    offset += nalu_size;
-                    pCtx->apDepacketizationState.currentOffset = offset;
-                }
-                else
-                {
-                    result = H265_RESULT_OUT_OF_MEMORY;
-                }
+                /* Update offset for next time */
+                offset += nalu_size;
+                pCtx->apDepacketizationState.currentOffset = offset;
             }
             else
             {
@@ -284,36 +276,29 @@ static H265Result_t H265Depacketizer_ProcessAggregationPacket( H265DepacketizerC
 /* Validate NALU size */
             if( offset + nalu_size <= pCurrentPacket->packetDataLength )
             {
-                /* Add buffer size check */
-                if( nalu_size <= pNalu->naluDataLength )
+                /* Set NALU fields */
+                H265Depacketizer_SetNalu( pCurrentPacket,
+                                          pNalu,
+                                          offset,
+                                          nalu_size );
+
+                /* Update state */
+                offset += nalu_size;
+                pCtx->apDepacketizationState.firstUnit = 0;
+
+/* Check if we've processed all NAL units in this AP */
+                if( offset >= pCurrentPacket->packetDataLength )
                 {
-                    /* Set NALU fields */
-                    H265Depacketizer_SetNalu( pCurrentPacket,
-                                              pNalu,
-                                              offset,
-                                              nalu_size );
-
-                    /* Update state */
-                    offset += nalu_size;
-                    pCtx->apDepacketizationState.firstUnit = 0;
-
-                    /* Check if we've processed all NAL units in this AP */
-                    if( offset >= pCurrentPacket->packetDataLength )
-                    {
-                        pCtx->currentlyProcessingPacket = H265_PACKET_NONE;
-                        pCtx->tailIndex++;
-                        pCtx->packetCount--;
-                    }
-                    else
-                    {
-                        pCtx->apDepacketizationState.currentOffset = offset;
-                    }
+                    pCtx->currentlyProcessingPacket = H265_PACKET_NONE;
+                    pCtx->tailIndex++;
+                    pCtx->packetCount--;
                 }
                 else
                 {
-                    result = H265_RESULT_OUT_OF_MEMORY;
+                    pCtx->apDepacketizationState.currentOffset = offset;
                 }
             }
+
             else
             {
                 result = H265_RESULT_MALFORMED_PACKET;
