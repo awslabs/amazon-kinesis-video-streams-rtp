@@ -1,6 +1,5 @@
 /* Standard includes. */
 #include <string.h>
-#include <stdio.h>
 
 /* API includes. */
 #include "h265_packetizer.h"
