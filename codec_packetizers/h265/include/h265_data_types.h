@@ -75,6 +75,8 @@
 #define FU_HEADER_TYPE_MASK         0x3F
 #define FU_HEADER_TYPE_LOCATION     0
 
+#define H265_MAX_RTP_PAYLOAD_SIZE    1200
+
 /*-----------------------------------------------------------*/
 
 /*

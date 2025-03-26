@@ -3,8 +3,8 @@
 
 /*-------------------------------------------------------------------------------------------------------------*/
 
-static H265Result_t H265Depacketizer_ProcessSingleNalu( H265DepacketizerContext_t * pCtx,
-                                                        H265Nalu_t * pNalu );
+static void H265Depacketizer_ProcessSingleNalu( H265DepacketizerContext_t * pCtx,
+                                                H265Nalu_t * pNalu );
 
 static H265Result_t H265Depacketizer_ProcessFragmentationUnit( H265DepacketizerContext_t * pCtx,
                                                                H265Nalu_t * pNalu );
@@ -34,10 +34,9 @@ static void H265Depacketizer_SetNalu( const H265Packet_t * pCurrentPacket,
 
 /*-------------------------------------------------------------------------------------------------------------*/
 
-static H265Result_t H265Depacketizer_ProcessSingleNalu( H265DepacketizerContext_t * pCtx,
-                                                        H265Nalu_t * pNalu )
+static void H265Depacketizer_ProcessSingleNalu( H265DepacketizerContext_t * pCtx,
+                                                H265Nalu_t * pNalu )
 {
-    H265Result_t result = H265_RESULT_OK;
     H265Packet_t * pCurrentPacket = NULL;
 
 /* Get current packet */
@@ -55,8 +54,6 @@ static H265Result_t H265Depacketizer_ProcessSingleNalu( H265DepacketizerContext_
 /* Update context */
     pCtx->tailIndex++;
     pCtx->packetCount--;
-
-    return result;
 }
 
 /*-------------------------------------------------------------------------------------------------------------*/
@@ -346,7 +343,7 @@ H265Result_t H265Depacketizer_Init( H265DepacketizerContext_t * pCtx,
         memset( &pCtx->fuDepacketizationState,
                 0,
                 sizeof( pCtx->fuDepacketizationState ) );
-        static uint8_t reassemblyBuffer[65535];                       /* Max RTP payload size */
+        static uint8_t reassemblyBuffer[H265_MAX_RTP_PAYLOAD_SIZE ];
         pCtx->fuDepacketizationState.pReassemblyBuffer = reassemblyBuffer;
         pCtx->fuDepacketizationState.reassemblyBufferSize = sizeof( reassemblyBuffer );
 
@@ -418,8 +415,8 @@ H265Result_t H265Depacketizer_GetNalu( H265DepacketizerContext_t * pCtx,
         if( ( nal_unit_type >= SINGLE_NALU_PACKET_TYPE_START ) &&
             ( nal_unit_type <= SINGLE_NALU_PACKET_TYPE_END ) )
         {
-            result = H265Depacketizer_ProcessSingleNalu( pCtx,
-                                                         pNalu );
+            H265Depacketizer_ProcessSingleNalu( pCtx,
+                                                pNalu );
         }
         else if( nal_unit_type == FU_PACKET_TYPE )
         {
