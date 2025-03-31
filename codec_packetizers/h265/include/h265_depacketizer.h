@@ -10,9 +10,6 @@ typedef struct FuDepacketizationState
     uint16_t payloadHdr;     /* 2 bytes for HEVC */
     uint8_t fuHeader;        /* S, E, and Type bits */
     uint8_t originalNalType; 
-    size_t reassembledLength;          
-    uint8_t * pReassemblyBuffer;
-    size_t reassemblyBufferSize;
 } FuDepacketizationState_t;
 
 /* AP Depacketization State */
