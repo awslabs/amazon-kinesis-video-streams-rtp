@@ -307,8 +307,6 @@ H265Result_t H265Packetizer_Init( H265PacketizerContext_t * pCtx,
     return result;
 }
 
-
-
 /*-----------------------------------------------------------------------------------------------------*/
 
 H265Result_t H265Packetizer_AddFrame( H265PacketizerContext_t * pCtx,
@@ -451,7 +449,6 @@ H265Result_t H265Packetizer_AddFrame( H265PacketizerContext_t * pCtx,
     return result;
 }
 
-
 /*-----------------------------------------------------------------------------------------------------*/
 
 H265Result_t H265Packetizer_AddNalu( H265PacketizerContext_t * pCtx,
@@ -459,6 +456,11 @@ H265Result_t H265Packetizer_AddNalu( H265PacketizerContext_t * pCtx,
 {
     H265Result_t result = H265_RESULT_OK;
 
+    if ((pCtx == NULL) || (pNalu == NULL) || 
+        (pNalu->pNaluData == NULL) || (pNalu->naluDataLength == 0))
+    {
+        return H265_RESULT_BAD_PARAM;
+    }
 /* Check for minimum NAL unit size (2-byte header) */
     if( pNalu->naluDataLength < NALU_HEADER_SIZE )
     {
@@ -494,7 +496,6 @@ H265Result_t H265Packetizer_AddNalu( H265PacketizerContext_t * pCtx,
 
     return result;
 }
-
 
 /*-----------------------------------------------------------------------------------------------------*/
 
@@ -602,5 +603,3 @@ H265Result_t H265Packetizer_GetPacket( H265PacketizerContext_t * pCtx,
 }
 
 /*-----------------------------------------------------------------------------------------------------*/
-
-

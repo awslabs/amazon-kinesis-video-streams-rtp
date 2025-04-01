@@ -115,14 +115,11 @@ static H265Result_t H265Depacketizer_ProcessAggregationPacket( H265DepacketizerC
 {
     uint8_t * pCurPacketData;
     size_t curPacketLength, naluLength;
-    size_t minSize;
     H265Result_t result = H265_RESULT_OK;
-
+    
+    const size_t minSize = AP_HEADER_SIZE + (2 * AP_NALU_LENGTH_FIELD_SIZE + 2 * NALU_HEADER_SIZE);
     pCurPacketData = pCtx->pPacketsArray[pCtx->tailIndex].pPacketData;
     curPacketLength = pCtx->pPacketsArray[pCtx->tailIndex].packetDataLength;
-
-/* Calculate minimum required size */
-    minSize = AP_HEADER_SIZE + ( 2 * AP_NALU_LENGTH_FIELD_SIZE + 2 * NALU_HEADER_SIZE );
 
 /* Check if the packet is large enough to potentially contain valid data */
     if( curPacketLength > minSize )
