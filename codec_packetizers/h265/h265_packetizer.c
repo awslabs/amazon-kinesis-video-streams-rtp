@@ -33,8 +33,8 @@ static void PacketizeSingleNaluPacket( H265PacketizerContext_t * pCtx,
                                        H265Packet_t * pPacket )
 {
     /* Copy NAL header from context to output */
-    memcpy( &( pPacket->pPacketData[ 0 ] ),
-            &( pCtx->pNaluArray[ pCtx->tailIndex ].pNaluData[ 0 ] ),
+    memcpy( ( void * ) &( pPacket->pPacketData[ 0 ] ),
+            ( const void * ) &( pCtx->pNaluArray[ pCtx->tailIndex ].pNaluData[ 0 ] ),
             pCtx->pNaluArray[ pCtx->tailIndex ].naluDataLength );
 
     pPacket->packetDataLength = pCtx->pNaluArray[ pCtx->tailIndex ].naluDataLength;
@@ -121,7 +121,7 @@ static void PacketizeFragmentationUnitPacket( H265PacketizerContext_t * pCtx,
     maxPayloadSize = ( pPacket->packetDataLength > headerSize ) ? pPacket->packetDataLength - headerSize : 0;
 
     /* Calculate actual payload size for this fragment */
-    payloadSize = ( pCtx->fuPacketizationState.remainingNaluLength <= maxPayloadSize ) ? pCtx->fuPacketizationState.remainingNaluLength : maxPayloadSize;
+    payloadSize = H265_MIN(pCtx->fuPacketizationState.remainingNaluLength, maxPayloadSize);
 
     /* Set E bit if this is the last fragment */
     if( pCtx->fuPacketizationState.remainingNaluLength <= maxPayloadSize )
@@ -152,8 +152,8 @@ static void PacketizeFragmentationUnitPacket( H265PacketizerContext_t * pCtx,
     /* Copy payload */
     if( payloadSize > 0 )
     {
-        memcpy( &pPacket->pPacketData[ offset ],
-                &pNaluData[ pCtx->fuPacketizationState.naluDataIndex ],
+        memcpy( ( void * ) &( pPacket->pPacketData[ offset ] ),
+                ( const void * ) &( pNaluData[ pCtx->fuPacketizationState.naluDataIndex ] ),
                 payloadSize );
     }
 
@@ -246,30 +246,16 @@ static void PacketizeAggregationPacket( H265PacketizerContext_t * pCtx,
     pPacket->pPacketData[ 1 ] = ( ( min_layer_id & 0x1F ) << 3 ) | min_tid;
     offset = 2;
 
-    /* Write first NAL size and data */
-    naluSize = pCtx->pNaluArray[ pCtx->tailIndex ].naluDataLength;
-    pPacket->pPacketData[ offset++ ] = ( naluSize >> 8 ) & 0xFF;
-    pPacket->pPacketData[ offset++ ] = naluSize & 0xFF;
-
-
-    memcpy( &pPacket->pPacketData[ offset ],
-            pCtx->pNaluArray[ pCtx->tailIndex ].pNaluData,
-            naluSize );
-    offset += naluSize;
-
-    pCtx->tailIndex++;
-    pCtx->naluCount--;
-
     /* Process subsequent NAL units */
-    for(uint8_t i = 1; i < naluCount; i++)
+    for(uint8_t i = 0; i < naluCount; i++)
     {
         /* Write NAL size and data */
         naluSize = pCtx->pNaluArray[ pCtx->tailIndex ].naluDataLength;
         pPacket->pPacketData[ offset++ ] = ( naluSize >> 8 ) & 0xFF;
         pPacket->pPacketData[ offset++ ] = naluSize & 0xFF;
 
-        memcpy( &pPacket->pPacketData[ offset ],
-                pCtx->pNaluArray[ pCtx->tailIndex ].pNaluData,
+        memcpy( ( void * ) &( pPacket->pPacketData[ offset ] ),
+                ( const void * ) &( pCtx->pNaluArray[ pCtx->tailIndex ].pNaluData[ 0 ] ),
                 naluSize );
         offset += naluSize;
 
