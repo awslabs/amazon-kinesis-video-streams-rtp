@@ -23,7 +23,6 @@ static void H265Depacketizer_ProcessSingleNalu( H265DepacketizerContext_t * pCtx
 
     pNalu->naluDataLength = pCtx->pPacketsArray[pCtx->tailIndex].packetDataLength;
 
-    // Move to next packet
     pCtx->tailIndex++;
     pCtx->packetCount--;
 }
@@ -40,14 +39,13 @@ static H265Result_t H265Depacketizer_ProcessFragmentationUnit( H265DepacketizerC
     size_t curNaluDataIndex = 0;
     H265Result_t result = H265_RESULT_OK;
 
-/* Process fragments until we reach the end or run out of packets */
     while( ( pCtx->packetCount > 0 ) &&
            ( ( fuHeader & FU_HEADER_E_BIT_MASK ) == 0 ) )
     {
         pCurPacketData = pCtx->pPacketsArray[pCtx->tailIndex].pPacketData;
         curPacketLength = pCtx->pPacketsArray[pCtx->tailIndex].packetDataLength;
 
-/* Check minimum size requirement */
+        /* Check minimum size requirement */
         if( curPacketLength < TOTAL_FU_HEADER_SIZE )
         {
             result = H265_RESULT_MALFORMED_PACKET;
@@ -58,14 +56,14 @@ static H265Result_t H265Depacketizer_ProcessFragmentationUnit( H265DepacketizerC
         firstByte = pCurPacketData[0];
         secondByte = pCurPacketData[1];
 
-/* Validate packet type */
+        /* Validate packet type */
         if( ( ( firstByte >> 1 ) & FU_HEADER_TYPE_MASK ) != FU_PACKET_TYPE )
         {
             result = H265_RESULT_MALFORMED_PACKET;
             break;
         }
 
-/* Handle start fragment - write NALU header */
+        /* Handle start fragment - write NALU header */
         if( fuHeader & FU_HEADER_S_BIT_MASK )
         {
             if( ( curNaluDataIndex + NALU_HEADER_SIZE ) <= pNalu->naluDataLength )
@@ -82,7 +80,7 @@ static H265Result_t H265Depacketizer_ProcessFragmentationUnit( H265DepacketizerC
             curNaluDataIndex += NALU_HEADER_SIZE;
         }
 
-/* Write NALU payload */
+        /* Write NALU payload */
         size_t payloadLength = curPacketLength - TOTAL_FU_HEADER_SIZE;
         if( ( curNaluDataIndex + payloadLength ) <= pNalu->naluDataLength )
         {
@@ -97,12 +95,12 @@ static H265Result_t H265Depacketizer_ProcessFragmentationUnit( H265DepacketizerC
         }
         curNaluDataIndex += payloadLength;
 
-/* Move to next packet */
+        /* Move to next packet */
         pCtx->tailIndex++;
         pCtx->packetCount--;
     }
 
-/* Update final NALU length */
+    /* Update final NALU length */
     pNalu->naluDataLength = curNaluDataIndex;
 
     return result;
@@ -121,30 +119,29 @@ static H265Result_t H265Depacketizer_ProcessAggregationPacket( H265DepacketizerC
     pCurPacketData = pCtx->pPacketsArray[pCtx->tailIndex].pPacketData;
     curPacketLength = pCtx->pPacketsArray[pCtx->tailIndex].packetDataLength;
 
-/* Check if the packet is large enough to potentially contain valid data */
+    /* Check if the packet is large enough to potentially contain valid data */
     if( curPacketLength > minSize )
     {
 
-/* We are just starting to parse an AP packet. Skip the AP header. */
+        /* We are just starting to parse an AP packet. Skip the AP header. */
         if( pCtx->currentlyProcessingPacket != H265_AP_PACKET )
         {
             pCtx->currentlyProcessingPacket = H265_AP_PACKET;
             pCtx->apDepacketizationState.currentOffset = AP_HEADER_SIZE;
         }
 
-/* Is there enough data left in the packet to read the next NALU size? */
+        /* Is there enough data left in the packet to read the next NALU size? */
         if( ( pCtx->apDepacketizationState.currentOffset + AP_NALU_LENGTH_FIELD_SIZE ) <= curPacketLength )
         {
-/* Read NALU length. */
             naluLength = ( pCurPacketData[pCtx->apDepacketizationState.currentOffset] << 8 ) |
                          pCurPacketData[pCtx->apDepacketizationState.currentOffset + 1];
 
             pCtx->apDepacketizationState.currentOffset += AP_NALU_LENGTH_FIELD_SIZE;
 
-/* Is there enough data left in the packet to read the next NALU? */
+            /* Is there enough data left in the packet to read the next NALU? */
             if( ( pCtx->apDepacketizationState.currentOffset + naluLength ) <= curPacketLength )
             {
-/* Is there enough space in the output buffer? */
+                /* Is there enough space in the output buffer? */
                 if( naluLength <= pNalu->naluDataLength )
                 {
                     memcpy( pNalu->pNaluData,
@@ -155,25 +152,18 @@ static H265Result_t H265Depacketizer_ProcessAggregationPacket( H265DepacketizerC
                 {
                     result = H265_RESULT_OUT_OF_MEMORY;
                 }
-
-/* Update NALU length. */
                 pNalu->naluDataLength = naluLength;
-
-/* Move to next Nalu in the next call. */
                 pCtx->apDepacketizationState.currentOffset += naluLength;
             }
             else
             {
                 result = H265_RESULT_MALFORMED_PACKET;
-
-/* Still move the currentOffset so that we move to the next packet
- * at the end of this function. */
+                /* Still move the currentOffset so that we move to the next packet at the end of this function. */
                 pCtx->apDepacketizationState.currentOffset += naluLength;
             }
         }
 
-/* If we do not have enough data left in this packet, move to the next
- * packet in the next call. */
+        /* If we do not have enough data left in this packet, move to the next packet in the next call. */
         if( ( pCtx->apDepacketizationState.currentOffset + AP_NALU_LENGTH_FIELD_SIZE ) > curPacketLength )
         {
             pCtx->currentlyProcessingPacket = H265_PACKET_NONE;
@@ -322,14 +312,14 @@ H265Result_t H265Depacketizer_GetFrame( H265DepacketizerContext_t * pCtx,
     H265Nalu_t nalu;
     size_t currentFrameDataIndex = 0;
 
-/* Parameter validation */
+    /* Parameter validation */
     if( ( pCtx == NULL ) || ( pFrame == NULL ) ||
         ( pFrame->pFrameData == NULL ) || ( pFrame->frameDataLength == 0 ) )
     {
         result = H265_RESULT_BAD_PARAM;
     }
 
-/* Check if we have any packets to process */
+    /* Check if we have any packets to process */
     if( result == H265_RESULT_OK )
     {
         if( pCtx->packetCount == 0 )
@@ -340,23 +330,19 @@ H265Result_t H265Depacketizer_GetFrame( H265DepacketizerContext_t * pCtx,
 
     while( result == H265_RESULT_OK )
     {
-/* Set up NALU buffer at current position */
+        /* Set up NALU buffer at current position */
         nalu.pNaluData = &( pFrame->pFrameData[currentFrameDataIndex] );
         nalu.naluDataLength = pFrame->frameDataLength - currentFrameDataIndex;
-
-/* Get next NALU */
         result = H265Depacketizer_GetNalu( pCtx,
                                            &nalu );
 
         if( result == H265_RESULT_OK )
         {
-/* Update frame data index to point after the NALU */
             currentFrameDataIndex += nalu.naluDataLength;
 
-/* Check if we have space for start code */
             if( ( pFrame->frameDataLength - currentFrameDataIndex ) >= sizeof( startCode ) )
             {
-/* Copy start code after the NALU */
+               /* Copy start code after the NALU */
                 memcpy( ( void * ) &( pFrame->pFrameData[ currentFrameDataIndex ] ),
                         ( const void * ) &( startCode[ 0 ] ),
                         sizeof( startCode ) );
@@ -370,7 +356,7 @@ H265Result_t H265Depacketizer_GetFrame( H265DepacketizerContext_t * pCtx,
         }
     }
 
-/* Convert NO_MORE_NALUS to OK if we've processed at least one NALU */
+    /* Convert NO_MORE_NALUS to OK if we've processed at least one NALU */
     if( result == H265_RESULT_NO_MORE_NALUS )
     {
         result = H265_RESULT_OK;
@@ -390,7 +376,6 @@ H265Result_t H265Depacketizer_GetPacketProperties( const uint8_t * pPacketData,
     uint8_t nal_unit_type;
     uint8_t fu_header;
 
-/* Parameter validation */
     if( ( pPacketData == NULL ) || ( pProperties == NULL ) ||
         ( packetDataLength < NALU_HEADER_SIZE ) )
     {
@@ -399,26 +384,22 @@ H265Result_t H265Depacketizer_GetPacketProperties( const uint8_t * pPacketData,
 
     if( result == H265_RESULT_OK )
     {
-/* Initialize properties */
         *pProperties = 0;
-
-/* Get NAL unit type from first byte */
         nal_unit_type = ( pPacketData[ 0 ] >> 1 ) & FU_HEADER_TYPE_MASK;
 
-/* Check packet type and set properties */
+        /* Check packet type and set properties */
         if( nal_unit_type == FU_PACKET_TYPE )
         {
-/* Validate FU packet has enough bytes for FU header */
+            /* Validate FU packet has enough bytes for FU header */
             if( packetDataLength < TOTAL_FU_HEADER_SIZE )
             {
                 result = H265_RESULT_MALFORMED_PACKET;
             }
             else
             {
-/* Get FU header */
                 fu_header = pPacketData[ 2 ];
 
-/* Check start and end bits */
+                /* Check start and end bits */
                 if( fu_header & FU_HEADER_S_BIT_MASK )
                 {
                     *pProperties |= H265_PACKET_PROPERTY_START_PACKET;
@@ -432,14 +413,14 @@ H265Result_t H265Depacketizer_GetPacketProperties( const uint8_t * pPacketData,
         }
         else if( nal_unit_type == AP_PACKET_TYPE ) /* Type 48 for AP */
         {
-/* Validate minimum AP packet size */
+            /* Validate minimum AP packet size */
             if( packetDataLength < ( NALU_HEADER_SIZE + AP_NALU_LENGTH_FIELD_SIZE ) )
             {
                 result = H265_RESULT_MALFORMED_PACKET;
             }
             else
             {
-/* AP packets are always complete units */
+                /* AP packets are always complete units */
                 *pProperties |= ( H265_PACKET_PROPERTY_START_PACKET |
                                   H265_PACKET_PROPERTY_END_PACKET );
             }
@@ -447,7 +428,7 @@ H265Result_t H265Depacketizer_GetPacketProperties( const uint8_t * pPacketData,
         else if( ( nal_unit_type >= SINGLE_NALU_PACKET_TYPE_START ) && /* Type 1-47 */
                  ( nal_unit_type <= SINGLE_NALU_PACKET_TYPE_END ) )
         {
-/* Single NAL unit packet - both start and end */
+            /* Single NAL unit packet - both start and end */
             *pProperties |= ( H265_PACKET_PROPERTY_START_PACKET |
                               H265_PACKET_PROPERTY_END_PACKET );
         }
@@ -459,6 +440,5 @@ H265Result_t H265Depacketizer_GetPacketProperties( const uint8_t * pPacketData,
 
     return result;
 }
-
 
 /*-------------------------------------------------------------------------------------------------------------*/
