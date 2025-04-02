@@ -114,8 +114,8 @@ static H265Result_t H265Depacketizer_ProcessAggregationPacket( H265DepacketizerC
     uint8_t * pCurPacketData;
     size_t curPacketLength, naluLength;
     H265Result_t result = H265_RESULT_OK;
-    
-    const size_t minSize = AP_HEADER_SIZE + (2 * AP_NALU_LENGTH_FIELD_SIZE + 2 * NALU_HEADER_SIZE);
+
+    const size_t minSize = AP_HEADER_SIZE + ( 2 * AP_NALU_LENGTH_FIELD_SIZE + 2 * NALU_HEADER_SIZE );
     pCurPacketData = pCtx->pPacketsArray[pCtx->tailIndex].pPacketData;
     curPacketLength = pCtx->pPacketsArray[pCtx->tailIndex].packetDataLength;
 
@@ -342,7 +342,7 @@ H265Result_t H265Depacketizer_GetFrame( H265DepacketizerContext_t * pCtx,
 
             if( ( pFrame->frameDataLength - currentFrameDataIndex ) >= sizeof( startCode ) )
             {
-               /* Copy start code after the NALU */
+                /* Copy start code after the NALU */
                 memcpy( ( void * ) &( pFrame->pFrameData[ currentFrameDataIndex ] ),
                         ( const void * ) &( startCode[ 0 ] ),
                         sizeof( startCode ) );
