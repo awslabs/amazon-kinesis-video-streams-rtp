@@ -370,13 +370,11 @@ H265Result_t H265Depacketizer_GetFrame( H265DepacketizerContext_t * pCtx,
         }
     }
 
-/* Update final frame length */
-    pFrame->frameDataLength = currentFrameDataIndex;
-
 /* Convert NO_MORE_NALUS to OK if we've processed at least one NALU */
-    if( ( result == H265_RESULT_NO_MORE_NALUS ) && ( currentFrameDataIndex > 0 ) )
+    if( result == H265_RESULT_NO_MORE_NALUS )
     {
         result = H265_RESULT_OK;
+        pFrame->frameDataLength = currentFrameDataIndex;
     }
 
     return result;
