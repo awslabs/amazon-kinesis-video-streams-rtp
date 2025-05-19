@@ -80,20 +80,19 @@ static void PacketizeFragmentationUnitPacket( H265PacketizerContext_t * pCtx,
         pCtx->currentlyProcessingPacket = H265_FU_PACKET;
 
         origF = pNaluData[ 0 ] & HEVC_NALU_HEADER_F_MASK;
-        origLayerId = ( pNaluData[ 0 ] & 0x01 ) << 5 |
-                      ( pNaluData[ 1 ] & HEVC_NALU_HEADER_LAYER_ID_MASK ) >> 3;
+        origLayerId = ( pNaluData[ 0 ] & HEVC_NALU_HEADER_LAYER_ID_FIRST_BYTE_MASK ) << 5 |
+                      ( pNaluData[ 1 ] & HEVC_NALU_HEADER_LAYER_ID_SECOND_BYTE_MASK ) >> 3;
         origTid = pNaluData[ 1 ] & HEVC_NALU_HEADER_TID_MASK;
 
         /* Construct PayloadHdr, the first byte */
         payloadHdr =
             ( ( origF << 7 ) |          /* F bit in MSB of first byte */
               ( FU_PACKET_TYPE << 1 ) | /* Type = 49 */
-              ( ( origLayerId >> 5 ) & 1 ) ) &
-            0xFF;                       /* First bit of LayerId */
+              ( ( origLayerId >> 5 ) & 1 ) );
 
         /* Add second byte */
         payloadHdr = ( payloadHdr << 8 ) |             /* Shift first byte */
-                     ( ( origLayerId & 0x1F ) << 3 ) | /* Rest of LayerId */
+                     ( ( origLayerId & HEVC_RTP_LAYER_ID_MASK ) << 3 ) | /* Rest of LayerId */
                      origTid;                          /* TID */
 
         pCtx->fuPacketizationState.payloadHdr = payloadHdr;
@@ -133,10 +132,10 @@ static void PacketizeFragmentationUnitPacket( H265PacketizerContext_t * pCtx,
      */
 
     /* Build packet */
-    pPacket->pPacketData[ offset ] = ( pCtx->fuPacketizationState.payloadHdr >> 8 ) & 0xFF;
+    pPacket->pPacketData[ offset ] = ( pCtx->fuPacketizationState.payloadHdr >> 8 ) & HEVC_BYTE_MASK ;
     offset++;
 
-    pPacket->pPacketData[ offset ] = pCtx->fuPacketizationState.payloadHdr & 0xFF;
+    pPacket->pPacketData[ offset ] = pCtx->fuPacketizationState.payloadHdr & HEVC_BYTE_MASK ;
     offset++;
 
     pPacket->pPacketData[ offset ] = fuHeader;
@@ -233,7 +232,7 @@ static void PacketizeAggregationPacket( H265PacketizerContext_t * pCtx,
 
     /* Write PayloadHdr */
     pPacket->pPacketData[ 0 ] = ( AP_PACKET_TYPE << 1 ) | ( min_layer_id >> 5 );
-    pPacket->pPacketData[ 1 ] = ( ( min_layer_id & 0x1F ) << 3 ) | min_tid;
+    pPacket->pPacketData[ 1 ] = ( ( min_layer_id & HEVC_RTP_LAYER_ID_MASK ) << 3 ) | min_tid;
     offset = 2;
 
     /* Process subsequent NAL units */
@@ -241,8 +240,8 @@ static void PacketizeAggregationPacket( H265PacketizerContext_t * pCtx,
     {
         /* Write NAL size and data */
         naluSize = pCtx->pNaluArray[ pCtx->tailIndex ].naluDataLength;
-        pPacket->pPacketData[ offset++ ] = ( naluSize >> 8 ) & 0xFF;
-        pPacket->pPacketData[ offset++ ] = naluSize & 0xFF;
+        pPacket->pPacketData[ offset++ ] = ( naluSize >> 8 ) & HEVC_BYTE_MASK ;
+        pPacket->pPacketData[ offset++ ] = naluSize & HEVC_BYTE_MASK ;
 
         memcpy( ( void * ) &( pPacket->pPacketData[ offset ] ),
                 ( const void * ) &( pCtx->pNaluArray[ pCtx->tailIndex ].pNaluData[ 0 ] ),
@@ -338,11 +337,11 @@ H265Result_t H265Packetizer_AddFrame( H265PacketizerContext_t * pCtx,
                         if( nalu.naluDataLength >= NALU_HEADER_SIZE )
                         {
                             /* First byte: F bit and Type */
-                            nalu.nal_unit_type = ( nalu.pNaluData[0] >> 1 ) & FU_HEADER_TYPE_MASK;
+                            nalu.nal_unit_type = ( nalu.pNaluData[0] >> 1 ) & HEVC_NALU_HEADER_TYPE_MASK ;
 
                             /* LayerId spans both bytes */
-                            nalu.nal_layer_id = ( ( nalu.pNaluData[0] & 0x01 ) << 5 ) |
-                                                ( ( nalu.pNaluData[1] >> 3 ) & 0x1F );
+                            nalu.nal_layer_id = ( ( nalu.pNaluData[0] & HEVC_NALU_HEADER_LAYER_ID_FIRST_BYTE_MASK ) << 5 ) |
+                                                ( ( nalu.pNaluData[ 1 ] & HEVC_NALU_HEADER_LAYER_ID_SECOND_BYTE_MASK ) >> 3 );
 
                             /* Second byte: TID */
                             nalu.temporal_id = nalu.pNaluData[1] & HEVC_NALU_HEADER_TID_MASK;
@@ -382,9 +381,9 @@ H265Result_t H265Packetizer_AddFrame( H265PacketizerContext_t * pCtx,
                         /* Extract H.265 header fields if NAL unit is big enough */
                         if( nalu.naluDataLength >= NALU_HEADER_SIZE )
                         {
-                            nalu.nal_unit_type = ( nalu.pNaluData[0] >> 1 ) & FU_HEADER_TYPE_MASK;
-                            nalu.nal_layer_id = ( ( nalu.pNaluData[0] & 0x01 ) << 5 ) |
-                                                ( ( nalu.pNaluData[1] >> 3 ) & 0x1F );
+                            nalu.nal_unit_type = ( nalu.pNaluData[0] >> 1 ) & HEVC_NALU_HEADER_TYPE_MASK ;
+                            nalu.nal_layer_id = ( ( nalu.pNaluData[0] & HEVC_NALU_HEADER_LAYER_ID_FIRST_BYTE_MASK ) << 5 ) |
+                                                ( ( nalu.pNaluData[ 1 ] & HEVC_NALU_HEADER_LAYER_ID_SECOND_BYTE_MASK ) >> 3 );
                             nalu.temporal_id = nalu.pNaluData[1] & HEVC_NALU_HEADER_TID_MASK;
 
                             result = H265Packetizer_AddNalu( pCtx,
@@ -413,9 +412,9 @@ H265Result_t H265Packetizer_AddFrame( H265PacketizerContext_t * pCtx,
 
             if( nalu.naluDataLength >= NALU_HEADER_SIZE )
             {
-                nalu.nal_unit_type = ( nalu.pNaluData[0] >> 1 ) & FU_HEADER_TYPE_MASK;
-                nalu.nal_layer_id = ( ( nalu.pNaluData[0] & 0x01 ) << 5 ) |
-                                    ( ( nalu.pNaluData[1] >> 3 ) & 0x1F );
+                nalu.nal_unit_type = ( nalu.pNaluData[0] >> 1 ) & HEVC_NALU_HEADER_TYPE_MASK ;
+                nalu.nal_layer_id = ( ( nalu.pNaluData[0] & HEVC_NALU_HEADER_LAYER_ID_FIRST_BYTE_MASK ) << 5 ) |
+                                    ( ( nalu.pNaluData[ 1 ] & HEVC_NALU_HEADER_LAYER_ID_SECOND_BYTE_MASK ) >> 3 );
                 nalu.temporal_id = nalu.pNaluData[1] & HEVC_NALU_HEADER_TID_MASK;
 
                 result = H265Packetizer_AddNalu( pCtx,

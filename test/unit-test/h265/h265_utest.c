@@ -767,19 +767,19 @@ void test_H265_Packetizer_GetPacket_Valid_Context_Invalid_Packet( void )
     result = H265Packetizer_Init( &ctx,
                                   naluArray,
                                   10);
-    TEST_ASSERT_EQUAL( 0, result );
+    TEST_ASSERT_EQUAL( H265_RESULT_OK, result );
 
     TEST_ASSERT_EQUAL(0, ctx.naluCount);
     packet.pPacketData = packetBuffer;
     packet.packetDataLength = MAX_H265_PACKET_LENGTH;
     result = H265Packetizer_GetPacket(&ctx, &packet);
-    TEST_ASSERT_EQUAL(H265_RESULT_NO_MORE_NALUS, result);
+    TEST_ASSERT_EQUAL( H265_RESULT_NO_MORE_NALUS, result );
 
     H265Nalu_t testNalu = { 0 };
     testNalu.pNaluData = naluData;
     testNalu.naluDataLength = sizeof( naluData );
     result = H265Packetizer_AddNalu( &ctx, &testNalu );
-    TEST_ASSERT_EQUAL( 0, result );
+    TEST_ASSERT_EQUAL( H265_RESULT_OK, result );
 
     result = H265Packetizer_GetPacket( &ctx, NULL );
     TEST_ASSERT_EQUAL( H265_RESULT_BAD_PARAM, result );

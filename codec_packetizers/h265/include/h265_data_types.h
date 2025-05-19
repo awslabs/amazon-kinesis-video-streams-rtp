@@ -15,7 +15,7 @@
  */
 
 #define NALU_HEADER_SIZE                      2
-
+#define HEVC_BYTE_MASK                        0xFF    /* Mask to get 8 bits/one byte */ 
 
 /* NAL unit header field maximum values (as per H.265/HEVC specification) */
 #define MAX_NAL_UNIT_TYPE                     63 /* 6 bits (0-63) */
@@ -23,18 +23,21 @@
 #define MAX_TEMPORAL_ID                       7  /* 3 bits (0-7) */
 
 /* First byte */
-#define HEVC_NALU_HEADER_TYPE_MASK            0x7E
+#define HEVC_NALU_HEADER_TYPE_MASK            0x3F                 
 #define HEVC_NALU_HEADER_TYPE_LOCATION        1
 
-#define HEVC_NALU_HEADER_F_MASK               0x80
+#define HEVC_NALU_HEADER_F_MASK               0x80        
 #define HEVC_NALU_HEADER_F_LOCATION           7
 
+#define HEVC_NALU_HEADER_LAYER_ID_FIRST_BYTE_MASK      0x01 
 /* Second byte */
-#define HEVC_NALU_HEADER_LAYER_ID_MASK        0xF8
+#define HEVC_NALU_HEADER_LAYER_ID_SECOND_BYTE_MASK   0xF8         
 #define HEVC_NALU_HEADER_LAYER_ID_LOCATION    3
 
-#define HEVC_NALU_HEADER_TID_MASK             0x07
+#define HEVC_NALU_HEADER_TID_MASK             0x07           
 #define HEVC_NALU_HEADER_TID_LOCATION         0
+
+#define HEVC_RTP_LAYER_ID_MASK    0x1F
 
 /*-----------------------------------------------------------*/
 
@@ -66,13 +69,13 @@
 #define FU_HEADER_SIZE              1
 #define TOTAL_FU_HEADER_SIZE        3       /* Total header size (NAL + FU) */
 
-#define FU_HEADER_S_BIT_MASK        0x80
+#define FU_HEADER_S_BIT_MASK        0x80             
 #define FU_HEADER_S_BIT_LOCATION    7
 
-#define FU_HEADER_E_BIT_MASK        0x40
+#define FU_HEADER_E_BIT_MASK        0x40       
 #define FU_HEADER_E_BIT_LOCATION    6
 
-#define FU_HEADER_TYPE_MASK         0x3F
+#define FU_HEADER_TYPE_MASK         0x3F       
 #define FU_HEADER_TYPE_LOCATION     0
 
 /*-----------------------------------------------------------*/
