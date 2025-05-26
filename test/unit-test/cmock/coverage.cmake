@@ -73,7 +73,6 @@ execute_process(
                          --rc lcov_branch_coverage=1
                          --include "*source*"
                          --include "*codec_packetizers*"
-                         --exclude "*source/rtp_endianness.c*"
         )
 execute_process(
             COMMAND genhtml --rc lcov_branch_coverage=1

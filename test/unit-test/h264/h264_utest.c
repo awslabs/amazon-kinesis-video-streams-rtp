@@ -747,7 +747,7 @@ void test_H264_Depacketizer_StapAGetNalu_OutOfMemory( void )
                        result );
 
     nalu.pNaluData = &( naluBuffer[ 0 ] );
-    nalu.naluDataLength = 1; // Set to 1 to simulate out of memory condition
+    nalu.naluDataLength = 1; /* Set to 1 to simulate out of memory condition. */
 
     result = H264Depacketizer_GetNalu( &( ctx ),
                                        &( nalu ) );
