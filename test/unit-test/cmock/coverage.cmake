@@ -19,6 +19,12 @@ execute_process( COMMAND lcov --directory ${CMAKE_BINARY_DIR}
                          --output-file=${CMAKE_BINARY_DIR}/base_coverage.info
                          --include "*source*"
                          --include "*codec_packetizers*"
+                         --exclude "*source/rtp_endianness.c*"
+                        # The functions in rtp_endianness.c file handle endianness-specific operations for both
+                        # little-endian and big-endian systems. Due to the nature of these operations,
+                        # it is not possible to achieve 100% code coverage as the execution path taken
+                        # depends on the endianness of the target system. Therefore, some branches may
+                        # remain uncovered during testing on a specific endianness.
         )
 file(GLOB files "${CMAKE_BINARY_DIR}/bin/tests/*")
 
@@ -54,6 +60,7 @@ execute_process(
                          --output-file ${CMAKE_BINARY_DIR}/second_coverage.info
                          --include "*source*"
                          --include "*codec_packetizers*"
+                         --exclude "*source/rtp_endianness.c*"
         )
 
 # Combile baseline results (zeros) with the one after running the tests.
@@ -66,6 +73,7 @@ execute_process(
                          --rc lcov_branch_coverage=1
                          --include "*source*"
                          --include "*codec_packetizers*"
+                         --exclude "*source/rtp_endianness.c*"
         )
 execute_process(
             COMMAND genhtml --rc lcov_branch_coverage=1
