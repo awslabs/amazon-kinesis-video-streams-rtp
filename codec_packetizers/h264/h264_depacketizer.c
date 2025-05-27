@@ -49,12 +49,6 @@ static H264Result_t DepacketizeFragmentationUnitPacket( H264DepacketizerContext_
         fuIndicator = pCurPacketData[ FU_A_INDICATOR_OFFSET ];
         fuHeader = pCurPacketData[ FU_A_HEADER_OFFSET ];
 
-        /* Break if this packet is not a fragment of the current packet. */
-        if( ( fuIndicator & FU_A_INDICATOR_TYPE_MASK ) != FU_A_PACKET_TYPE )
-        {
-            break;
-        }
-
         /* Write NALU header for the first fragment only. */
         if( ( fuHeader & FU_A_HEADER_S_BIT_MASK ) != 0 )
         {
@@ -334,11 +328,10 @@ H264Result_t H264Depacketizer_GetFrame( H264DepacketizerContext_t * pCtx,
         }
     }
 
-    pFrame->frameDataLength = currentFrameDataIndex;
-
     if( result == H264_RESULT_NO_MORE_NALUS )
     {
         result = H264_RESULT_OK;
+        pFrame->frameDataLength = currentFrameDataIndex;
     }
 
     return result;

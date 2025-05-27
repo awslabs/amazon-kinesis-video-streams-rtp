@@ -98,12 +98,12 @@ add_custom_target( coverage
     COMMAND ${CMAKE_COMMAND} -DCMOCK_DIR=${CMOCK_DIR}
     -P ${MODULE_ROOT_DIR}/test/unit-test/cmock/coverage.cmake
     DEPENDS cmock unity
-    g711
-    opus
-    h264
-    h265 
-    vp8
-    rtp_packet_queue
-    rtp_api
+    g711_utest
+    opus_utest
+    h264_utest
+    h265_utest
+    vp8_utest
+    rtp_packet_queue_utest
+    rtp_api_utest
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
 )
