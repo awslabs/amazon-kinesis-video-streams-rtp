@@ -7,6 +7,7 @@ file( GLOB RTP_SOURCES
      "${CMAKE_CURRENT_LIST_DIR}/source/*.c"
      "${CMAKE_CURRENT_LIST_DIR}/codec_packetizers/g711/*.c"
      "${CMAKE_CURRENT_LIST_DIR}/codec_packetizers/h264/*.c"
+     "${CMAKE_CURRENT_LIST_DIR}/codec_packetizers/h265/*.c"
      "${CMAKE_CURRENT_LIST_DIR}/codec_packetizers/opus/*.c"
      "${CMAKE_CURRENT_LIST_DIR}/codec_packetizers/vp8/*.c" )
 
@@ -15,6 +16,7 @@ set( RTP_INCLUDE_PUBLIC_DIRS
      "${CMAKE_CURRENT_LIST_DIR}/source/include"
      "${CMAKE_CURRENT_LIST_DIR}/codec_packetizers/g711/include"
      "${CMAKE_CURRENT_LIST_DIR}/codec_packetizers/h264/include"
+     "${CMAKE_CURRENT_LIST_DIR}/codec_packetizers/h265/include"
      "${CMAKE_CURRENT_LIST_DIR}/codec_packetizers/opus/include"
      "${CMAKE_CURRENT_LIST_DIR}/codec_packetizers/vp8/include" )
 
@@ -23,5 +25,6 @@ file( GLOB RTP_INCLUDE_PUBLIC_FILES
      "${CMAKE_CURRENT_LIST_DIR}/source/include/*.h"
      "${CMAKE_CURRENT_LIST_DIR}/codec_packetizers/g711/include/*.h"
      "${CMAKE_CURRENT_LIST_DIR}/codec_packetizers/h264/include/*.h"
+     "${CMAKE_CURRENT_LIST_DIR}/codec_packetizers/h265/include/*.h"
      "${CMAKE_CURRENT_LIST_DIR}/codec_packetizers/opus/include/*.h"
      "${CMAKE_CURRENT_LIST_DIR}/codec_packetizers/vp8/include/*.h" )

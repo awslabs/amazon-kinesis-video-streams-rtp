@@ -87,6 +87,7 @@ include( ${MODULE_ROOT_DIR}/test/unit-test/cmock/create_test.cmake )
 include( ${UNIT_TEST_DIR}/g711/ut.cmake )
 include( ${UNIT_TEST_DIR}/opus/ut.cmake )
 include( ${UNIT_TEST_DIR}/h264/ut.cmake )
+include( ${UNIT_TEST_DIR}/h265/ut.cmake )
 include( ${UNIT_TEST_DIR}/vp8/ut.cmake )
 include( ${UNIT_TEST_DIR}/rtp_packet_queue/ut.cmake )
 include( ${UNIT_TEST_DIR}/rtp_api/ut.cmake )
@@ -100,6 +101,7 @@ add_custom_target( coverage
     g711_utest
     opus_utest
     h264_utest
+    h265_utest
     vp8_utest
     rtp_packet_queue_utest
     rtp_api_utest
