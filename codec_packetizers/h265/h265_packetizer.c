@@ -282,9 +282,6 @@ H265Result_t H265Packetizer_Init( H265PacketizerContext_t * pCtx,
         memset( &pCtx->fuPacketizationState,
                 0,
                 sizeof( FuPacketizationState_t ) );
-        memset( &pCtx->apPacketizationState,
-                0,
-                sizeof( ApPacketizationState_t ) );
     }
 
     return result;

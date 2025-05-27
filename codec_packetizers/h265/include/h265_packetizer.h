@@ -24,14 +24,6 @@ typedef struct H265AggregationUnitHeader
 } H265AggregationUnitHeader_t;
 
 
-typedef struct ApPacketizationState
-{
-    uint16_t payloadHdr;                 /* Type 48 for AP */
-    size_t totalSize;                    /* Track total AP size */
-    uint8_t naluCount;                   /* Number of NALUs in AP */
-    H265AggregationUnitHeader_t * units; /* Array of aggregation units */
-} ApPacketizationState_t;
-
 /* Main Packetizer Context */
 typedef struct H265PacketizerContext
 {
@@ -44,7 +36,6 @@ typedef struct H265PacketizerContext
     /* Current state */
     H265PacketType_t currentlyProcessingPacket;
     FuPacketizationState_t fuPacketizationState;
-    ApPacketizationState_t apPacketizationState;
 
 } H265PacketizerContext_t;
 
