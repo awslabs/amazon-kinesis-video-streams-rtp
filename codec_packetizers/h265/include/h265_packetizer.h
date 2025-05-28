@@ -12,18 +12,6 @@ typedef struct FuPacketizationState
     size_t remainingNaluLength;
 } FuPacketizationState_t;
 
-
-/* AP Packetization State */
-/* Aggregation Unit structure */
-typedef struct H265AggregationUnitHeader
-{
-    uint16_t nalu_size;
-    uint16_t nalu_header;
-    uint8_t * pPayload;
-    size_t payloadLength;
-} H265AggregationUnitHeader_t;
-
-
 typedef struct H265PacketizerContext
 {
     H265Nalu_t * pNaluArray;

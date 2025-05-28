@@ -173,8 +173,8 @@ static void PacketizeAggregationPacket( H265PacketizerContext_t * pCtx,
         packetWriteIndex += 2;
 
         /* Write NAL unit data. */
-        memcpy( &( pPacket->pPacketData[ packetWriteIndex ] ),
-                pNaluData,
+        memcpy( ( void * ) &( pPacket->pPacketData[ packetWriteIndex ] ),
+                ( const void * ) pNaluData,
                 naluSize );
         packetWriteIndex += naluSize;
     }

@@ -1333,7 +1333,7 @@ void test_H264_Depacketizer_GetNalu_PayloadOutOfMemory( void )
     H264DepacketizerContext_t ctx = { 0 };
     Nalu_t nalu;
     uint8_t naluBuffer[ MAX_NALU_LENGTH ];
-    uint8_t packetData[] = { 0x1C, 0x00 };
+    uint8_t packetData[] = { 0x1C, 0x80 };
     H264Packet_t h264Packet;
 
     nalu.pNaluData = &( naluBuffer[ 0 ] );

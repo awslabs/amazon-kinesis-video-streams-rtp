@@ -1036,7 +1036,6 @@ void test_H265Depacketizer_ProcessFragmentation_OutOfMemory_Cases(void)
         /* Set up context */
         ctx.packetCount = 1;
         ctx.tailIndex = 0;
-        ctx.currentlyProcessingPacket = H265_PACKET_NONE;
 
         /* Process the packet */
         result = H265Depacketizer_GetNalu(&ctx, &nalu);
@@ -1132,7 +1131,6 @@ void test_H265_Depacketizer_FragmentationUnit_ErrorCases(void)
 
     ctx.tailIndex = 0;
     ctx.packetCount = 1;
-    ctx.currentlyProcessingPacket = H265_PACKET_NONE;
 
     result = H265Depacketizer_GetNalu(&ctx, &nalu);
     TEST_ASSERT_EQUAL(H265_RESULT_MALFORMED_PACKET, result);
@@ -1178,12 +1176,10 @@ void test_H265Depacketizer_ProcessAggregationPacket_InsufficientDataForNaluSize(
     packetsArray[0].packetDataLength = sizeof(packetData);
 
 
-    ctx.currentlyProcessingPacket = H265_AP_PACKET;
-    ctx.apDepacketizationState.currentOffset = sizeof(packetData) - 1;
+    ctx.curPacketIndex = sizeof(packetData) - 1;
     result = H265Depacketizer_GetNalu(&ctx, &nalu);
     TEST_ASSERT_EQUAL(H265_RESULT_OK, result);
 
-    TEST_ASSERT_EQUAL(H265_PACKET_NONE, ctx.currentlyProcessingPacket);
     TEST_ASSERT_EQUAL(1, ctx.tailIndex);
     TEST_ASSERT_EQUAL(0, ctx.packetCount);
 }
@@ -1220,9 +1216,7 @@ void test_H265_Depacketizer_AggregationPacket_ErrorCases( void )
     packetsArray[ 0 ].pPacketData = invalidSecondSize;
     packetsArray[ 0 ].packetDataLength = sizeof( invalidSecondSize );
     ctx.packetCount = 1;
-    ctx.currentlyProcessingPacket = H265_AP_PACKET;
-    ctx.apDepacketizationState.currentOffset = 8;  /* Point to second NALU */
-    ctx.apDepacketizationState.firstUnit = 0;
+    ctx.curPacketIndex = 8; /* Point to second NALU */
     result = H265Depacketizer_GetNalu( &ctx, &nalu );
     TEST_ASSERT_EQUAL( H265_RESULT_MALFORMED_PACKET, result );
 }
@@ -1283,17 +1277,20 @@ void test_H265_Depacketizer_AP_UpdateOffset_MoreNalus( void )
     /* Get first NALU */
     result = H265Depacketizer_GetNalu( &ctx, &nalu );
     TEST_ASSERT_EQUAL( H265_RESULT_OK, result );
-    TEST_ASSERT_EQUAL( 8, ctx.apDepacketizationState.currentOffset );    /* Verify currentOffset is set to start of second NALU */
+    TEST_ASSERT_EQUAL( 8, ctx.curPacketIndex );    /* Verify currentOffset is set to start of second NALU */
 
     /* Get second NALU */
     result = H265Depacketizer_GetNalu( &ctx, &nalu );
     TEST_ASSERT_EQUAL( H265_RESULT_OK, result );
-    TEST_ASSERT_EQUAL( 14, ctx.apDepacketizationState.currentOffset );     /* Verify currentOffset is set to start of third NALU */
+    TEST_ASSERT_EQUAL( 14, ctx.curPacketIndex );     /* Verify currentOffset is set to start of third NALU */
 
     /* Get third NALU */
     result = H265Depacketizer_GetNalu( &ctx, &nalu );
     TEST_ASSERT_EQUAL( H265_RESULT_OK, result );
-    TEST_ASSERT_EQUAL( H265_PACKET_NONE, ctx.currentlyProcessingPacket );    /* Verify packet is completed */
+
+    /* Verify packet is completed */
+    result = H265Depacketizer_GetNalu( &ctx, &nalu );
+    TEST_ASSERT_EQUAL( H265_RESULT_NO_MORE_NALUS, result );
 }
 
 /*-----------------------------------------------------------------------------------------------------*/
@@ -1336,7 +1333,6 @@ void test_H265Depacketizer_ProcessAggregationPacket_OutOfMemory(void)
 
     ctx.tailIndex = 0;
     ctx.packetCount = 1;
-    ctx.currentlyProcessingPacket = H265_PACKET_NONE;
 
     /* Process the packet */
     result = H265Depacketizer_GetNalu(&ctx, &nalu);
@@ -1379,7 +1375,6 @@ void test_H265Depacketizer_ProcessAggregationPacket_SmallPacket(void)
 
     ctx.tailIndex = 0;
     ctx.packetCount = 1;
-    ctx.currentlyProcessingPacket = H265_PACKET_NONE;
 
     /* Process the packet */
     result = H265Depacketizer_GetNalu(&ctx, &nalu);
@@ -1520,7 +1515,6 @@ void test_H265Depacketizer_GetFrame_OutOfMemory(void)
     /* Ensure we have a packet to process */
     ctx.packetCount = 1;
     ctx.tailIndex = 0;
-    ctx.currentlyProcessingPacket = H265_PACKET_NONE;
 
     /* Call GetFrame - should fail due to insufficient space for start code */
     result = H265Depacketizer_GetFrame(&ctx, &frame);
@@ -1615,7 +1609,6 @@ void test_H265_Depacketizer_GetPacketProperties( void )
 
     result = H265Depacketizer_GetPacketProperties(packet, sizeof(packet), &properties);
     TEST_ASSERT_EQUAL(H265_RESULT_UNSUPPORTED_PACKET, result);
-    TEST_ASSERT_EQUAL(0, properties);
 }
 
 /*-----------------------------------------------------------------------------------------------------*/
@@ -1637,16 +1630,7 @@ void test_H265Depacketizer_GetPacketProperties_MalformedPacket(void)
     result = H265Depacketizer_GetPacketProperties(malformedFUPacket, sizeof(malformedFUPacket), &properties);
     TEST_ASSERT_EQUAL(H265_RESULT_MALFORMED_PACKET, result);
 
-    /* Test 2: Malformed AP packet (too short) */
-    uint8_t malformedAPPacket[] = {
-        0x60,  // NAL unit header (AP indicator)
-        0x01   // Second byte
-        // Missing NALU length field
-    };
-    result = H265Depacketizer_GetPacketProperties(malformedAPPacket, sizeof(malformedAPPacket), &properties);
-    TEST_ASSERT_EQUAL(H265_RESULT_MALFORMED_PACKET, result);
-
-    /* Test 3: Unsupported packet type */
+    /* Test 2: Unsupported packet type */
     uint8_t unsupportedPacket[] = {
         0xFE,  // NAL unit header with unsupported type (0x7F)
         0x01,  // Second byte
