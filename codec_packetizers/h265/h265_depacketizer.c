@@ -46,7 +46,7 @@ static H265Result_t H265Depacketizer_ProcessFragmentationUnit( H265DepacketizerC
         curPacketLength = pCtx->pPacketsArray[pCtx->tailIndex].packetDataLength;
 
         /* Check minimum size requirement */
-        if( curPacketLength < TOTAL_FU_HEADER_SIZE )
+        if( curPacketLength < FU_PAYLOAD_HEADER_SIZE + FU_HEADER_SIZE )
         {
             result = H265_RESULT_MALFORMED_PACKET;
             break;
@@ -81,11 +81,11 @@ static H265Result_t H265Depacketizer_ProcessFragmentationUnit( H265DepacketizerC
         }
 
         /* Write NALU payload */
-        size_t payloadLength = curPacketLength - TOTAL_FU_HEADER_SIZE;
+        size_t payloadLength = curPacketLength - FU_PAYLOAD_HEADER_SIZE - FU_HEADER_SIZE;
         if( ( curNaluDataIndex + payloadLength ) <= pNalu->naluDataLength )
         {
             memcpy( ( void * ) &( pNalu->pNaluData[curNaluDataIndex] ),
-                    ( const void * ) &( pCurPacketData[TOTAL_FU_HEADER_SIZE] ),
+                    ( const void * ) &( pCurPacketData[FU_PAYLOAD_HEADER_SIZE + FU_HEADER_SIZE] ),
                     payloadLength );
         }
         else
@@ -258,7 +258,7 @@ H265Result_t H265Depacketizer_GetNalu( H265DepacketizerContext_t * pCtx,
                                        H265Nalu_t * pNalu )
 {
     H265Result_t result = H265_RESULT_OK;
-    uint8_t nal_unit_type;
+    uint8_t nalUnitType;
 
     if( ( pCtx == NULL ) || ( pNalu == NULL ) )
     {
@@ -275,20 +275,20 @@ H265Result_t H265Depacketizer_GetNalu( H265DepacketizerContext_t * pCtx,
 
     if( result == H265_RESULT_OK )
     {
-        nal_unit_type = ( pCtx->pPacketsArray[ pCtx->tailIndex ].pPacketData[ 0 ] >> 1 ) & FU_HEADER_TYPE_MASK;
+        nalUnitType = ( pCtx->pPacketsArray[ pCtx->tailIndex ].pPacketData[ 0 ] >> 1 ) & FU_HEADER_TYPE_MASK;
 
-        if( ( nal_unit_type >= SINGLE_NALU_PACKET_TYPE_START ) &&
-            ( nal_unit_type <= SINGLE_NALU_PACKET_TYPE_END ) )
+        if( ( nalUnitType >= SINGLE_NALU_PACKET_TYPE_START ) &&
+            ( nalUnitType <= SINGLE_NALU_PACKET_TYPE_END ) )
         {
             H265Depacketizer_ProcessSingleNalu( pCtx,
                                                 pNalu );
         }
-        else if( nal_unit_type == FU_PACKET_TYPE )
+        else if( nalUnitType == FU_PACKET_TYPE )
         {
             result = H265Depacketizer_ProcessFragmentationUnit( pCtx,
                                                                 pNalu );
         }
-        else if( nal_unit_type == AP_PACKET_TYPE )
+        else if( nalUnitType == AP_PACKET_TYPE )
         {
             result = H265Depacketizer_ProcessAggregationPacket( pCtx,
                                                                 pNalu );
@@ -373,7 +373,7 @@ H265Result_t H265Depacketizer_GetPacketProperties( const uint8_t * pPacketData,
                                                    uint32_t * pProperties )
 {
     H265Result_t result = H265_RESULT_OK;
-    uint8_t nal_unit_type;
+    uint8_t nalUnitType;
     uint8_t fu_header;
 
     if( ( pPacketData == NULL ) || ( pProperties == NULL ) ||
@@ -385,13 +385,13 @@ H265Result_t H265Depacketizer_GetPacketProperties( const uint8_t * pPacketData,
     if( result == H265_RESULT_OK )
     {
         *pProperties = 0;
-        nal_unit_type = ( pPacketData[ 0 ] >> 1 ) & FU_HEADER_TYPE_MASK;
+        nalUnitType = ( pPacketData[ 0 ] >> 1 ) & FU_HEADER_TYPE_MASK;
 
         /* Check packet type and set properties */
-        if( nal_unit_type == FU_PACKET_TYPE )
+        if( nalUnitType == FU_PACKET_TYPE )
         {
             /* Validate FU packet has enough bytes for FU header */
-            if( packetDataLength < TOTAL_FU_HEADER_SIZE )
+            if( packetDataLength < FU_PAYLOAD_HEADER_SIZE + FU_HEADER_SIZE )
             {
                 result = H265_RESULT_MALFORMED_PACKET;
             }
@@ -411,7 +411,7 @@ H265Result_t H265Depacketizer_GetPacketProperties( const uint8_t * pPacketData,
                 }
             }
         }
-        else if( nal_unit_type == AP_PACKET_TYPE ) /* Type 48 for AP */
+        else if( nalUnitType == AP_PACKET_TYPE ) /* Type 48 for AP */
         {
             /* Validate minimum AP packet size */
             if( packetDataLength < ( NALU_HEADER_SIZE + AP_NALU_LENGTH_FIELD_SIZE ) )
@@ -425,8 +425,8 @@ H265Result_t H265Depacketizer_GetPacketProperties( const uint8_t * pPacketData,
                                   H265_PACKET_PROPERTY_END_PACKET );
             }
         }
-        else if( ( nal_unit_type >= SINGLE_NALU_PACKET_TYPE_START ) && /* Type 1-47 */
-                 ( nal_unit_type <= SINGLE_NALU_PACKET_TYPE_END ) )
+        else if( ( nalUnitType >= SINGLE_NALU_PACKET_TYPE_START ) && /* Type 1-47 */
+                 ( nalUnitType <= SINGLE_NALU_PACKET_TYPE_END ) )
         {
             /* Single NAL unit packet - both start and end */
             *pProperties |= ( H265_PACKET_PROPERTY_START_PACKET |

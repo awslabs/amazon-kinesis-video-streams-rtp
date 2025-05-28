@@ -472,7 +472,10 @@ void test_H264_Packetizer_AddNalu_OutOfMemory( void )
     H264PacketizerContext_t ctx = { 0 };
     H264Result_t result;
     Nalu_t nalusArray[ MAX_NALUS_IN_A_FRAME ];
+    uint8_t naluBuffer[ MAX_NALU_LENGTH ];
 
+    nalusArray[ 0 ].pNaluData = &( naluBuffer[ 0 ] );
+    nalusArray[ 0 ].naluDataLength = MAX_NALU_LENGTH;
     ctx.naluArrayLength = 0;
 
     result = H264Packetizer_AddNalu( &( ctx ),

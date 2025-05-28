@@ -1,6 +1,7 @@
 #ifndef H265_DATA_TYPES_H
 #define H265_DATA_TYPES_H
 
+/* Standard includes. */
 #include <stdint.h>
 #include <stddef.h>
 
@@ -13,100 +14,107 @@
  * |F|   Type    |  LayerId  | TID |
  * +-------------+-----------------+
  */
+#define NALU_HEADER_SIZE            2
 
-#define NALU_HEADER_SIZE                      2
-#define HEVC_BYTE_MASK                        0xFF    /* Mask to get 8 bits/one byte */ 
+#define NALU_HEADER_F_MASK          0x80
+#define NALU_HEADER_F_LOCATION      7
 
-/* NAL unit header field maximum values (as per H.265/HEVC specification) */
-#define MAX_NAL_UNIT_TYPE                     63 /* 6 bits (0-63) */
-#define MAX_LAYER_ID                          63 /* 6 bits (0-63) */
-#define MAX_TEMPORAL_ID                       7  /* 3 bits (0-7) */
+#define NALU_HEADER_TYPE_MASK       0x7E
+#define NALU_HEADER_TYPE_LOCATION   1
 
-/* First byte */
-#define HEVC_NALU_HEADER_TYPE_MASK            0x3F                 
-#define HEVC_NALU_HEADER_TYPE_LOCATION        1
+#define NALU_HEADER_TID_MASK        0x07
+#define NALU_HEADER_TID_LOCATION    0
 
-#define HEVC_NALU_HEADER_F_MASK               0x80        
-#define HEVC_NALU_HEADER_F_LOCATION           7
-
-#define HEVC_NALU_HEADER_LAYER_ID_FIRST_BYTE_MASK      0x01 
-/* Second byte */
-#define HEVC_NALU_HEADER_LAYER_ID_SECOND_BYTE_MASK   0xF8         
-#define HEVC_NALU_HEADER_LAYER_ID_LOCATION    3
-
-#define HEVC_NALU_HEADER_TID_MASK             0x07           
-#define HEVC_NALU_HEADER_TID_LOCATION         0
-
-#define HEVC_RTP_LAYER_ID_MASK    0x1F
+#define NALU_HEADER_TYPE_MAX_VALUE  63 /* The field is 6 bits and therefore, possible values are 0-63. */
+#define NALU_HEADER_TID_MAX_VALUE   7  /* The field is 3 bits and therefore, possible values are 0-7. */
 
 /*-----------------------------------------------------------*/
 
-/* For RTP packetization (from RFC 7798) */
-/* This means NAL unit types 1-47 can be carried in single NAL unit packets */
-#define SINGLE_NALU_PACKET_TYPE_START    1  /* First valid NAL unit type */
-#define SINGLE_NALU_PACKET_TYPE_END      47 /* Last valid NAL unit type */
+/*
+ * NAL Unit types.
+ */
+#define SINGLE_NALU_PACKET_TYPE_START    1
+#define SINGLE_NALU_PACKET_TYPE_END      47
+#define AP_PACKET_TYPE                   48
+#define FU_PACKET_TYPE                   49
 
-/* Special NAL unit types for packetization */
-#define AP_PACKET_TYPE                   48 /* Aggregation Packet type */
-#define FU_PACKET_TYPE                   49 /* Fragmentation Unit type */
-
-
-
-/*****************************************************************/
+/*-----------------------------------------------------------*/
 
 /*
  * RTP payload format for FU (Fragmentation Units):
  *
+ *  0                   1                   2                   3
+ *  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+ * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ * |    PayloadHdr (Type=49)       |   FU header   |               |
+ * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+               |
+ * |                                                               |
+ * |                                                               |
+ * |                         FU payload                            |
+ * |                                                               |
+ * |                               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ * |                               :...OPTIONAL RTP padding        |
+ * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *
+ * PayloadHdr (Same structure as NAL unit header):
  * +---------------+---------------+
  * |0|1|2|3|4|5|6|7|0|1|2|3|4|5|6|7|
  * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
- * |F| Type (49) |  LayerId  | TID |
+ * |F| Type(49)  |  LayerId  | TID |
  * +---------------+---------------+
- * |S|E|  FuType   |    Payload    | 
- * +---------------+---------------+
+ *
+ * FU header:
+ * +---------------+
+ * |0|1|2|3|4|5|6|7|
+ * +-+-+-+-+-+-+-+-+
+ * |S|E|  FuType   |
+ * +---------------+
  */
+#define FU_PAYLOAD_HEADER_SIZE      2
 #define FU_HEADER_OFFSET            2
 #define FU_HEADER_SIZE              1
-#define TOTAL_FU_HEADER_SIZE        3       /* Total header size (NAL + FU) */
 
-#define FU_HEADER_S_BIT_MASK        0x80             
+#define FU_HEADER_S_BIT_MASK        0x80
 #define FU_HEADER_S_BIT_LOCATION    7
 
-#define FU_HEADER_E_BIT_MASK        0x40       
+#define FU_HEADER_E_BIT_MASK        0x40
 #define FU_HEADER_E_BIT_LOCATION    6
 
-#define FU_HEADER_TYPE_MASK         0x3F       
+#define FU_HEADER_TYPE_MASK         0x3F
 #define FU_HEADER_TYPE_LOCATION     0
 
 /*-----------------------------------------------------------*/
 
 /*
- * RTP payload format for AP (Aggregation Packets):
+ * RTP payload format for AP (Aggregation Packet):
  *
- * +---------------+---------------+
- * |0|1|2|3|4|5|6|7|0|1|2|3|4|5|6|7|
- * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
- * |F| Type (48) |  LayerId  | TID |
- * +---------------+---------------+
- * |                               |
- * |         NALU 1 Size           |
- * +---------------+---------------+
- * |                               |
- * |           NALU 1              |
- * +---------------+---------------+
- * |                               |
- * |         NALU 2 Size           |
- * +---------------+---------------+
- * |                               |
- * |            NALU 2             |
- * +---------------+---------------+
+ *  0                   1                   2                   3
+ *  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+ * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ * |                          RTP Header                           |
+ * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ * |F| Type (48) |  LayerId  | TID |         NALU 1 Size           |
+ * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ * |          NALU 1 HDR           |                               |
+ * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+         NALU 1 Data           |
+ * |                   . . .                                       |
+ * |                                                               |
+ * +               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ * |  . . .        | NALU 2 Size                   | NALU 2 HDR    |
+ * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ * | NALU 2 HDR    |                                               |
+ * +-+-+-+-+-+-+-+-+              NALU 2 Data                      |
+ * |                   . . .                                       |
+ * |                               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ * |                               :...OPTIONAL RTP padding        |
+ * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
  */
-#define AP_HEADER_SIZE               2           /* the size of the big box's label */
-#define AP_NALU_LENGTH_FIELD_SIZE    2           /* the size of each smaller box's size tag */
+#define AP_HEADER_SIZE               2 /* Size of the AP payload header. */
+#define AP_NALU_LENGTH_FIELD_SIZE    2 /* Size of the NAL unit in bytes. */
 
 /*-----------------------------------------------------------*/
 
-/* Packet properties */
+/* Packet properties, used in H265Depacketizer_GetPacketProperties. */
 #define H265_PACKET_PROPERTY_START_PACKET    ( 1 << 0 )
 #define H265_PACKET_PROPERTY_END_PACKET      ( 1 << 1 )
 
@@ -127,7 +135,7 @@ typedef enum H265Result
     H265_RESULT_NO_MORE_FRAMES,
     H265_RESULT_MALFORMED_PACKET,
     H265_RESULT_UNSUPPORTED_PACKET,
-    H265_RESULT_BUFFER_TOO_SMALL   
+    H265_RESULT_BUFFER_TOO_SMALL
 } H265Result_t;
 
 typedef enum H265PacketType
@@ -148,11 +156,10 @@ typedef struct H265Packet
 
 typedef struct H265Nalu
 {
-    uint8_t * pNaluData;       /* pointer to the NAL (header + payload) */
-    size_t naluDataLength;     /* size of NAL in bytes */
-    uint8_t nal_unit_type;     /* (eg. VPS, SPS, PPS) */
-    uint8_t nal_layer_id;
-    uint8_t temporal_id;
+    uint8_t * pNaluData;       /* Pointer to the NAL (header + payload). */
+    size_t naluDataLength;     /* Size of NAL in bytes. */
+    uint8_t nalUnitType;       /* Such as VPS, SPS, PPS etc. */
+    uint8_t temporalId;
 } H265Nalu_t;
 
 typedef struct H265Frame
