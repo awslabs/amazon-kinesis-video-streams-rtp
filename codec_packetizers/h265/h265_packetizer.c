@@ -148,7 +148,7 @@ static void PacketizeAggregationPacket( H265PacketizerContext_t * pCtx,
 {
     size_t i, packetWriteIndex = 0, naluSize;
     uint8_t * pNaluData;
-    uint8_t minTemporalId = 0;
+    uint8_t minTemporalId = 0xFF;
 
     /* Write payload header. */
     pPacket->pPacketData[ 0 ] = AP_PACKET_TYPE << NALU_HEADER_TYPE_LOCATION;
@@ -264,19 +264,8 @@ H265Result_t H265Packetizer_AddFrame( H265PacketizerContext_t * pCtx,
                     nalu.pNaluData = &( pFrame->pFrameData[ naluStartIndex ] );
                     nalu.naluDataLength = currentIndex - naluStartIndex;
 
-                    /* Extract H.265 NALU header fields if NAL unit is big enough. */
-                    if( nalu.naluDataLength >= NALU_HEADER_SIZE )
-                    {
-                        nalu.nalUnitType = ( nalu.pNaluData[ 0 ] & NALU_HEADER_TYPE_MASK ) >> NALU_HEADER_TYPE_LOCATION;
-                        nalu.temporalId = ( nalu.pNaluData[ 1 ] & NALU_HEADER_TID_MASK ) >> NALU_HEADER_TID_LOCATION;
-
-                        result = H265Packetizer_AddNalu( pCtx,
-                                                         &( nalu ) );
-                    }
-                    else
-                    {
-                        result = H265_RESULT_MALFORMED_PACKET;
-                    }
+                    result = H265Packetizer_AddNalu( pCtx,
+                                                     &( nalu ) );
                 }
 
                 naluStartIndex = currentIndex + sizeof( startCode1 );
@@ -302,19 +291,8 @@ H265Result_t H265Packetizer_AddFrame( H265PacketizerContext_t * pCtx,
                     nalu.pNaluData = &( pFrame->pFrameData[ naluStartIndex ] );
                     nalu.naluDataLength = currentIndex - naluStartIndex;
 
-                    /* Extract H.265 NALU header fields if NAL unit is big enough. */
-                    if( nalu.naluDataLength >= NALU_HEADER_SIZE )
-                    {
-                        nalu.nalUnitType = ( nalu.pNaluData[ 0 ] & NALU_HEADER_TYPE_MASK ) >> NALU_HEADER_TYPE_LOCATION;
-                        nalu.temporalId = ( nalu.pNaluData[ 1 ] & NALU_HEADER_TID_MASK ) >> NALU_HEADER_TID_LOCATION;
-
-                        result = H265Packetizer_AddNalu( pCtx,
-                                                         &( nalu ) );
-                    }
-                    else
-                    {
-                        result = H265_RESULT_MALFORMED_PACKET;
-                    }
+                    result = H265Packetizer_AddNalu( pCtx,
+                                                     &( nalu ) );
                 }
 
                 naluStartIndex = currentIndex + sizeof( startCode2 );
@@ -327,16 +305,12 @@ H265Result_t H265Packetizer_AddFrame( H265PacketizerContext_t * pCtx,
     }
 
     /* Handle last NAL unit in frame. */
-    if( ( result == H265_RESULT_OK ) &&
-        ( naluStartIndex > 0 ) )
+    if( result == H265_RESULT_OK )
     {
-        nalu.pNaluData = &( pFrame->pFrameData[ naluStartIndex ] );
-        nalu.naluDataLength = pFrame->frameDataLength - naluStartIndex;
-
-        if( nalu.naluDataLength >= NALU_HEADER_SIZE )
+        if( naluStartIndex > 0 )
         {
-            nalu.nalUnitType = ( nalu.pNaluData[ 0 ] & NALU_HEADER_TYPE_MASK ) >> NALU_HEADER_TYPE_LOCATION;
-            nalu.temporalId = ( nalu.pNaluData[ 1 ] & NALU_HEADER_TID_MASK ) >> NALU_HEADER_TID_LOCATION;
+            nalu.pNaluData = &( pFrame->pFrameData[ naluStartIndex ] );
+            nalu.naluDataLength = pFrame->frameDataLength - naluStartIndex;
 
             result = H265Packetizer_AddNalu( pCtx,
                                              &( nalu ) );
@@ -356,13 +330,11 @@ H265Result_t H265Packetizer_AddNalu( H265PacketizerContext_t * pCtx,
                                      H265Nalu_t * pNalu )
 {
     H265Result_t result = H265_RESULT_OK;
+    uint8_t nalUnitType, temporalId;
 
     if( ( pCtx == NULL ) ||
         ( pNalu == NULL ) ||
-        ( pNalu->pNaluData == NULL ) ||
-        ( pNalu->naluDataLength == 0 ) ||
-        ( pNalu->nalUnitType > NALU_HEADER_TYPE_MAX_VALUE ) ||
-        ( pNalu->temporalId > NALU_HEADER_TID_MAX_VALUE) )
+        ( pNalu->pNaluData == NULL ) )
     {
         result = H265_RESULT_BAD_PARAM;
     }
@@ -388,8 +360,10 @@ H265Result_t H265Packetizer_AddNalu( H265PacketizerContext_t * pCtx,
         pCtx->pNaluArray[ pCtx->headIndex ].pNaluData = pNalu->pNaluData;
         pCtx->pNaluArray[ pCtx->headIndex ].naluDataLength = pNalu->naluDataLength;
 
-        pCtx->pNaluArray[ pCtx->headIndex ].nalUnitType = pNalu->nalUnitType;
-        pCtx->pNaluArray[ pCtx->headIndex ].temporalId = pNalu->temporalId;
+        nalUnitType = ( pNalu->pNaluData[ 0 ] & NALU_HEADER_TYPE_MASK ) >> NALU_HEADER_TYPE_LOCATION;
+        temporalId = ( pNalu->pNaluData[ 1 ] & NALU_HEADER_TID_MASK ) >> NALU_HEADER_TID_LOCATION;
+        pCtx->pNaluArray[ pCtx->headIndex ].nalUnitType = nalUnitType;
+        pCtx->pNaluArray[ pCtx->headIndex ].temporalId = temporalId;
 
         pCtx->headIndex += 1;
         pCtx->naluCount += 1;

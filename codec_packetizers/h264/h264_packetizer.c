@@ -137,6 +137,7 @@ H264Result_t H264Packetizer_Init( H264PacketizerContext_t * pCtx,
         pCtx->naluCount = 0;
 
         pCtx->currentlyProcessingPacket = H264_PACKET_NONE;
+
         memset( &( pCtx->fuAPacketizationState ),
                 0,
                 sizeof( FuAPacketizationState_t ) );
@@ -153,8 +154,8 @@ H264Result_t H264Packetizer_AddFrame( H264PacketizerContext_t * pCtx,
     H264Result_t result = H264_RESULT_OK;
     Nalu_t nalu;
     size_t currentIndex = 0, naluStartIndex = 0, remainingFrameLength;
-    uint8_t startCode1[] = { 0x00, 0x00, 0x00, 0x01 };
-    uint8_t startCode2[] = { 0x00, 0x00, 0x01 };
+    uint8_t startCode1[] = { 0x00, 0x00, 0x00, 0x01 }; /* 4-byte start code. */
+    uint8_t startCode2[] = { 0x00, 0x00, 0x01 }; /* 3-byte start code. */
     uint8_t firstStartCode = 1;
 
     if( ( pCtx == NULL ) ||
@@ -213,6 +214,7 @@ H264Result_t H264Packetizer_AddFrame( H264PacketizerContext_t * pCtx,
                     /* Create NAL unit from data between start codes. */
                     nalu.pNaluData = &( pFrame->pFrameData[ naluStartIndex ] );
                     nalu.naluDataLength = currentIndex - naluStartIndex;
+
                     result = H264Packetizer_AddNalu( pCtx,
                                                      &( nalu ) );
                 }
@@ -227,13 +229,20 @@ H264Result_t H264Packetizer_AddFrame( H264PacketizerContext_t * pCtx,
     }
 
     /* Handle last NAL unit in frame. */
-    if( ( result == H264_RESULT_OK ) &&
-        ( naluStartIndex > 0 ) )
+    if( result == H264_RESULT_OK )
     {
-        nalu.pNaluData = &( pFrame->pFrameData[ naluStartIndex ] );
-        nalu.naluDataLength = pFrame->frameDataLength - naluStartIndex;
-        result = H264Packetizer_AddNalu( pCtx,
-                                         &( nalu ) );
+        if( naluStartIndex > 0 )
+        {
+            nalu.pNaluData = &( pFrame->pFrameData[ naluStartIndex ] );
+            nalu.naluDataLength = pFrame->frameDataLength - naluStartIndex;
+
+            result = H264Packetizer_AddNalu( pCtx,
+                                             &( nalu ) );
+        }
+        else
+        {
+            result = H264_RESULT_MALFORMED_PACKET;
+        }
     }
 
     return result;
@@ -248,10 +257,17 @@ H264Result_t H264Packetizer_AddNalu( H264PacketizerContext_t * pCtx,
 
     if( ( pCtx == NULL ) ||
         ( pNalu == NULL ) ||
-        ( pNalu->pNaluData == NULL ) ||
-        ( pNalu->naluDataLength == 0 ) )
+        ( pNalu->pNaluData == NULL ) )
     {
         result = H264_RESULT_BAD_PARAM;
+    }
+
+    if( result == H264_RESULT_OK )
+    {
+        if( pNalu->naluDataLength < NALU_HEADER_SIZE )
+        {
+            result = H264_RESULT_MALFORMED_PACKET;
+        }
     }
 
     if( result == H264_RESULT_OK )

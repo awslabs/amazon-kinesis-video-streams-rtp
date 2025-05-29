@@ -25,9 +25,6 @@
 #define NALU_HEADER_TID_MASK        0x07
 #define NALU_HEADER_TID_LOCATION    0
 
-#define NALU_HEADER_TYPE_MAX_VALUE  63 /* The field is 6 bits and therefore, possible values are 0-63. */
-#define NALU_HEADER_TID_MAX_VALUE   7  /* The field is 3 bits and therefore, possible values are 0-7. */
-
 /*-----------------------------------------------------------*/
 
 /*
