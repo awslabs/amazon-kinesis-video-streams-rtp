@@ -148,7 +148,7 @@ static void PacketizeAggregationPacket( H265PacketizerContext_t * pCtx,
 {
     size_t i, packetWriteIndex = 0, naluSize;
     uint8_t * pNaluData;
-    uint8_t minTemporalId = 0xFF;
+    uint8_t temporalId, minTemporalId = 0xFF;
 
     /* Write payload header. */
     pPacket->pPacketData[ 0 ] = AP_PACKET_TYPE << NALU_HEADER_TYPE_LOCATION;
@@ -161,8 +161,8 @@ static void PacketizeAggregationPacket( H265PacketizerContext_t * pCtx,
         pNaluData = pCtx->pNaluArray[ pCtx->tailIndex + i ].pNaluData;
         naluSize = pCtx->pNaluArray[ pCtx->tailIndex + i ].naluDataLength;
 
-        minTemporalId = H265_MIN( minTemporalId,
-                                  pCtx->pNaluArray[ pCtx->tailIndex + i ].temporalId );
+        temporalId = ( pNaluData[ 1 ] & NALU_HEADER_TID_MASK ) >> NALU_HEADER_TID_LOCATION;
+        minTemporalId = H265_MIN( minTemporalId, temporalId );
 
         /* Update F bit in the payload header. */
         pPacket->pPacketData[ 0 ] |= ( pNaluData[ 0 ] & NALU_HEADER_F_MASK );
@@ -330,7 +330,6 @@ H265Result_t H265Packetizer_AddNalu( H265PacketizerContext_t * pCtx,
                                      H265Nalu_t * pNalu )
 {
     H265Result_t result = H265_RESULT_OK;
-    uint8_t nalUnitType, temporalId;
 
     if( ( pCtx == NULL ) ||
         ( pNalu == NULL ) ||
@@ -359,11 +358,6 @@ H265Result_t H265Packetizer_AddNalu( H265PacketizerContext_t * pCtx,
     {
         pCtx->pNaluArray[ pCtx->headIndex ].pNaluData = pNalu->pNaluData;
         pCtx->pNaluArray[ pCtx->headIndex ].naluDataLength = pNalu->naluDataLength;
-
-        nalUnitType = ( pNalu->pNaluData[ 0 ] & NALU_HEADER_TYPE_MASK ) >> NALU_HEADER_TYPE_LOCATION;
-        temporalId = ( pNalu->pNaluData[ 1 ] & NALU_HEADER_TID_MASK ) >> NALU_HEADER_TID_LOCATION;
-        pCtx->pNaluArray[ pCtx->headIndex ].nalUnitType = nalUnitType;
-        pCtx->pNaluArray[ pCtx->headIndex ].temporalId = temporalId;
 
         pCtx->headIndex += 1;
         pCtx->naluCount += 1;

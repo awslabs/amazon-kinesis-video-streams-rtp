@@ -246,15 +246,11 @@ void test_H265_Packetizer_Aggregation_Packet( void )
     {
         .pNaluData      = &( naluData1[ 0 ] ),
         .naluDataLength = sizeof( naluData1 ),
-        .nalUnitType    = 32,
-        .temporalId     = 1
     };
     H265Nalu_t nalu2 =
     {
         .pNaluData      = &( naluData2[ 0 ] ),
         .naluDataLength = sizeof( naluData2 ),
-        .nalUnitType    = 33,
-        .temporalId     = 2
     };
     H265Packet_t packet =
     {

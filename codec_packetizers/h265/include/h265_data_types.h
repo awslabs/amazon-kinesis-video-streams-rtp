@@ -155,8 +155,6 @@ typedef struct H265Nalu
 {
     uint8_t * pNaluData;       /* Pointer to the NAL (header + payload). */
     size_t naluDataLength;     /* Size of NAL in bytes. */
-    uint8_t nalUnitType;       /* Such as VPS, SPS, PPS etc. */
-    uint8_t temporalId;
 } H265Nalu_t;
 
 typedef struct H265Frame
