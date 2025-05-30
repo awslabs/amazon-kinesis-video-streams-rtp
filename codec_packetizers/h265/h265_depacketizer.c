@@ -124,7 +124,7 @@ static H265Result_t DepacketizeAggregationPacket( H265DepacketizerContext_t * pC
     H265Result_t result = H265_RESULT_OK;
 
     pCurPacketData = pCtx->pPacketsArray[ pCtx->tailIndex ].pPacketData;
-    curPacketLength = pCtx->pPacketsArray [pCtx->tailIndex ].packetDataLength;
+    curPacketLength = pCtx->pPacketsArray[ pCtx->tailIndex ].packetDataLength;
 
     /* We are just starting to parse an AP packet. Skip the AP header. */
     if( pCtx->curPacketIndex == 0 )
@@ -172,10 +172,14 @@ static H265Result_t DepacketizeAggregationPacket( H265DepacketizerContext_t * pC
             pCtx->curPacketIndex += naluLength;
         }
     }
+    else
+    {
+        result = H265_RESULT_MALFORMED_PACKET;
+    }
 
     /* If we do not have enough data left in this packet, move to the next
      * packet in the next call to H265Depacketizer_GetNalu. */
-    if( ( pCtx->curPacketIndex + AP_NALU_LENGTH_FIELD_SIZE ) > curPacketLength )
+    if( pCtx->curPacketIndex >= curPacketLength )
     {
         pCtx->curPacketIndex = 0;
         pCtx->tailIndex += 1;
