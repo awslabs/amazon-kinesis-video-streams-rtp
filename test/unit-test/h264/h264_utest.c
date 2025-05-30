@@ -341,6 +341,40 @@ void test_H264_Packetizer_AddFrame_ThreeByte( void )
 /*-----------------------------------------------------------*/
 
 /**
+ * @brief Validate H264 add frame with missing start code.
+ */
+void test_H264_Packetizer_AddFrame_MissingStartCode( void )
+{
+    H264PacketizerContext_t ctx = { 0 };
+    H264Result_t result;
+    Nalu_t nalusArray[ MAX_NALUS_IN_A_FRAME ];
+    uint8_t frameData[] =
+    {
+        0x09, 0x10
+    };
+    Frame_t frame =
+    {
+        .pFrameData = &( frameData[ 0 ] ),
+        .frameDataLength = sizeof( frameData )
+    };
+
+    result = H264Packetizer_Init( &( ctx ),
+                                  &( nalusArray[ 0 ] ),
+                                  MAX_NALUS_IN_A_FRAME );
+
+    TEST_ASSERT_EQUAL( H264_RESULT_OK,
+                       result );
+
+    result = H264Packetizer_AddFrame( &( ctx ),
+                                      &( frame ) );
+
+    TEST_ASSERT_EQUAL( H264_RESULT_MALFORMED_PACKET,
+                       result );
+}
+
+/*-----------------------------------------------------------*/
+
+/**
  * @brief Validate H264_Packetizer_Init incase of bad parameters.
  */
 void test_H264_Packetizer_Init_BadParams( void )
@@ -447,10 +481,15 @@ void test_H264_Packetizer_AddNalu_BadParams( void )
 {
     H264PacketizerContext_t ctx = { 0 };
     H264Result_t result;
-    Nalu_t nalusArray[ MAX_NALUS_IN_A_FRAME ];
+    uint8_t naluData[] = { 0x00, 0x01, 0x02, 0x03 };
+    Nalu_t nalu =
+    {
+        .pNaluData = &( naluData[ 0 ] ),
+        .naluDataLength = sizeof( naluData )
+    };
 
     result = H264Packetizer_AddNalu( NULL,
-                                     &( nalusArray[ 0 ] ) );
+                                     &( nalu ) );
 
     TEST_ASSERT_EQUAL( H264_RESULT_BAD_PARAM,
                        result );
@@ -459,6 +498,36 @@ void test_H264_Packetizer_AddNalu_BadParams( void )
                                      NULL );
 
     TEST_ASSERT_EQUAL( H264_RESULT_BAD_PARAM,
+                       result );
+
+    nalu.pNaluData = NULL;
+    result = H264Packetizer_AddNalu( &( ctx ),
+                                     &( nalu ) );
+
+    TEST_ASSERT_EQUAL( H264_RESULT_BAD_PARAM,
+                       result );
+}
+
+/*-----------------------------------------------------------*/
+
+/**
+ * @brief Validate H264_Packetizer_AddNalu incase of too small Nalu.
+ */
+void test_H264_Packetizer_AddNalu_TooSmall( void )
+{
+    H264PacketizerContext_t ctx = { 0 };
+    H264Result_t result;
+    uint8_t naluData[] = { 0x00, 0x01, 0x02, 0x03 };
+    Nalu_t nalu =
+    {
+        .pNaluData = &( naluData[ 0 ] ),
+        .naluDataLength = 0 /* Invalid as it is less than NALU_HEADER_SIZE. */
+    };
+
+    result = H264Packetizer_AddNalu( &( ctx ),
+                                     &( nalu ) );
+
+    TEST_ASSERT_EQUAL( H264_RESULT_MALFORMED_PACKET,
                        result );
 }
 
@@ -472,7 +541,10 @@ void test_H264_Packetizer_AddNalu_OutOfMemory( void )
     H264PacketizerContext_t ctx = { 0 };
     H264Result_t result;
     Nalu_t nalusArray[ MAX_NALUS_IN_A_FRAME ];
+    uint8_t naluBuffer[ MAX_NALU_LENGTH ];
 
+    nalusArray[ 0 ].pNaluData = &( naluBuffer[ 0 ] );
+    nalusArray[ 0 ].naluDataLength = MAX_NALU_LENGTH;
     ctx.naluArrayLength = 0;
 
     result = H264Packetizer_AddNalu( &( ctx ),
@@ -505,6 +577,22 @@ void test_H264_Packetizer_GetPacket_BadParams( void )
 
     result = H264Packetizer_GetPacket( &( ctx ),
                                        NULL );
+
+    TEST_ASSERT_EQUAL( H264_RESULT_BAD_PARAM,
+                       result );
+
+    pkt.pPacketData = NULL;
+    pkt.packetDataLength = MAX_H264_PACKET_LENGTH;
+    result = H264Packetizer_GetPacket( &( ctx ),
+                                       &( pkt ) );
+
+    TEST_ASSERT_EQUAL( H264_RESULT_BAD_PARAM,
+                       result );
+
+    pkt.pPacketData = &( pktBuffer[ 0 ] );
+    pkt.packetDataLength = 0;
+    result = H264Packetizer_GetPacket( &( ctx ),
+                                       &( pkt ) );
 
     TEST_ASSERT_EQUAL( H264_RESULT_BAD_PARAM,
                        result );
@@ -804,7 +892,7 @@ void test_H264_Depacketizer_StapAGetNalu_Insufficient_Data_To_Read_Next_NALUSize
     result = H264Depacketizer_GetNalu( &( ctx ),
                                        &( nalu ) );
 
-    TEST_ASSERT_EQUAL( H264_RESULT_OK,
+    TEST_ASSERT_EQUAL( H264_RESULT_MALFORMED_PACKET,
                        result );
 }
 
@@ -979,6 +1067,431 @@ void test_H264_Depacketizer_GetFrame( void )
 /*-----------------------------------------------------------*/
 
 /**
+ * @brief Validate H264 depacketization when a frame consists of fragmentation
+ * units.
+ */
+void test_H264_Depacketizer_GetFrame_Fragmentation_Units( void )
+{
+    H264Result_t result;
+    H264DepacketizerContext_t ctx = { 0 };
+    H264Packet_t packetsArray[ MAX_PACKETS_IN_A_FRAME ];
+    Frame_t frame =
+    {
+        .pFrameData = &( frameBuffer[ 0 ] ),
+        .frameDataLength = MAX_FRAME_LENGTH
+    };
+    uint8_t fragmentUnitData1[] =
+    {
+        0x1C,       /* FU indicator: Type=28. */
+        0x93,       /* FU header: S=1, Type=19. */
+        0xAA, 0xBB  /* FU payload. */
+    };
+    uint8_t fragmentUnitData2[] =
+    {
+        0x1C,       /* FU indicator: Type=28. */
+        0x53,       /* FU header: E=1, Type=19. */
+        0xCC, 0xDD  /* FU payload. */
+    };
+    H264Packet_t fragment1 =
+    {
+        .pPacketData = &( fragmentUnitData1[ 0 ] ),
+        .packetDataLength = sizeof( fragmentUnitData1 )
+    };
+    H264Packet_t fragment2 =
+    {
+        .pPacketData = &( fragmentUnitData2[ 0 ] ),
+        .packetDataLength = sizeof( fragmentUnitData2 )
+    };
+    uint8_t expectedFrame[] =
+    {
+        /* Start code. */
+        0x00, 0x00, 0x00, 0x01,
+        /* NALU reconstructed from fragments. */
+        0x13,                   /* NALU header: Type=19. */
+        0xAA, 0xBB, 0xCC, 0xDD  /* NALU payload. */
+    };
+
+    result = H264Depacketizer_Init( &( ctx ),
+                                    &( packetsArray[ 0 ] ),
+                                    MAX_PACKETS_IN_A_FRAME );
+
+    TEST_ASSERT_EQUAL( H264_RESULT_OK,
+                       result );
+
+    result = H264Depacketizer_AddPacket( &( ctx ),
+                                         &( fragment1 ) );
+
+    TEST_ASSERT_EQUAL( H264_RESULT_OK,
+                       result );
+
+    result = H264Depacketizer_AddPacket( &( ctx ),
+                                         &( fragment2 ) );
+
+    TEST_ASSERT_EQUAL( H264_RESULT_OK,
+                       result );
+
+    result = H264Depacketizer_GetFrame( &( ctx ),
+                                        &( frame ) );
+
+    TEST_ASSERT_EQUAL( H264_RESULT_OK,
+                       result );
+    TEST_ASSERT_EQUAL( sizeof( expectedFrame ),
+                       frame.frameDataLength );
+    TEST_ASSERT_EQUAL_UINT8_ARRAY( &( expectedFrame[ 0 ] ),
+                                   frame.pFrameData,
+                                   frame.frameDataLength );
+
+    result = H264Depacketizer_GetFrame( &( ctx ),
+                                        &( frame ) );
+
+    TEST_ASSERT_EQUAL( H264_RESULT_NO_MORE_FRAMES,
+                       result );
+}
+
+/*-----------------------------------------------------------*/
+
+/**
+ * @brief Validate H264 depacketization when a frame consists of fragmentation
+ * units and single nalu packets.
+ */
+void test_H264_Depacketizer_GetFrame_Fragmentation_Unit_And_Single_Nalu( void )
+{
+    H264Result_t result;
+    H264DepacketizerContext_t ctx = { 0 };
+    H264Packet_t packetsArray[ MAX_PACKETS_IN_A_FRAME ];
+    Frame_t frame =
+    {
+        .pFrameData = &( frameBuffer[ 0 ] ),
+        .frameDataLength = MAX_FRAME_LENGTH
+    };
+    uint8_t fragmentUnitData1[] =
+    {
+        0x1C,       /* FU indicator: Type=28. */
+        0x93,       /* FU header: S=1, Type=19. */
+        0xAA, 0xBB  /* FU payload. */
+    };
+    uint8_t fragmentUnitData2[] =
+    {
+        0x1C,       /* FU indicator: Type=28. */
+        0x53,       /* FU header: E=1, Type=19. */
+        0xCC, 0xDD  /* FU payload. */
+    };
+    H264Packet_t fragment1 =
+    {
+        .pPacketData = &( fragmentUnitData1[ 0 ] ),
+        .packetDataLength = sizeof( fragmentUnitData1 )
+    };
+    H264Packet_t fragment2 =
+    {
+        .pPacketData = &( fragmentUnitData2[ 0 ] ),
+        .packetDataLength = sizeof( fragmentUnitData2 )
+    };
+    uint8_t singleNaluPacketData[] =
+    {
+        0x13,            /* NALU header: Type=19. */
+        0xAA, 0xBB, 0xCC /* NALU payload. */
+    };
+    H264Packet_t singleNaluPacket =
+    {
+        .pPacketData = &( singleNaluPacketData[ 0 ] ),
+        .packetDataLength = sizeof( singleNaluPacketData )
+    };
+    uint8_t expectedFrame[] =
+    {
+        /* Start code. */
+        0x00, 0x00, 0x00, 0x01,
+        /* NALU reconstructed from fragments. */
+        0x13,                   /* NALU header: Type=19. */
+        0xAA, 0xBB, 0xCC, 0xDD, /* NALU payload. */
+        /* Start code. */
+        0x00, 0x00, 0x00, 0x01,
+        /* Single NALU. */
+        0x13,                   /* NALU header: Type=19. */
+        0xAA, 0xBB, 0xCC        /* NALU payload. */
+    };
+
+    result = H264Depacketizer_Init( &( ctx ),
+                                    &( packetsArray[ 0 ] ),
+                                    MAX_PACKETS_IN_A_FRAME );
+
+    TEST_ASSERT_EQUAL( H264_RESULT_OK,
+                       result );
+
+    result = H264Depacketizer_AddPacket( &( ctx ),
+                                         &( fragment1 ) );
+
+    TEST_ASSERT_EQUAL( H264_RESULT_OK,
+                       result );
+
+    result = H264Depacketizer_AddPacket( &( ctx ),
+                                         &( fragment2 ) );
+
+    TEST_ASSERT_EQUAL( H264_RESULT_OK,
+                       result );
+
+    result = H264Depacketizer_AddPacket( &( ctx ),
+                                         &( singleNaluPacket ) );
+
+    TEST_ASSERT_EQUAL( H264_RESULT_OK,
+                       result );
+
+    result = H264Depacketizer_GetFrame( &( ctx ),
+                                        &( frame ) );
+
+    TEST_ASSERT_EQUAL( H264_RESULT_OK,
+                       result );
+    TEST_ASSERT_EQUAL( sizeof( expectedFrame ),
+                       frame.frameDataLength );
+    TEST_ASSERT_EQUAL_UINT8_ARRAY( &( expectedFrame[ 0 ] ),
+                                   frame.pFrameData,
+                                   frame.frameDataLength );
+
+    result = H264Depacketizer_GetFrame( &( ctx ),
+                                        &( frame ) );
+
+    TEST_ASSERT_EQUAL( H264_RESULT_NO_MORE_FRAMES,
+                       result );
+}
+
+/*-----------------------------------------------------------*/
+
+/**
+ * @brief Test H264 depacketization of fragmentation unit with second fragment
+ * of invalid type.
+ */
+void test_H264Depacketizer_GetFrame_Fragmentation_Units_Invalid_Type_Second_Fragment( void )
+{
+    H264Result_t result;
+    H264DepacketizerContext_t ctx = { 0 };
+    H264Packet_t packetsArray[ MAX_PACKETS_IN_A_FRAME ];
+    Frame_t frame =
+    {
+        .pFrameData = &( frameBuffer[ 0 ] ),
+        .frameDataLength = MAX_FRAME_LENGTH
+    };
+    uint8_t fragmentUnitData1[] =
+    {
+        0x1C,       /* FU indicator: Type=28. */
+        0x93,       /* FU header: S=1, Type=19. */
+        0xAA, 0xBB  /* FU payload. */
+    };
+    uint8_t fragmentUnitData2[] =
+    {
+        0x00,       /* FU indicator: Type=0(Invalid). */
+        0x53,       /* FU header: E=1, Type=19. */
+        0xCC, 0xDD  /* FU payload. */
+    };
+    H264Packet_t fragment1 =
+    {
+        .pPacketData = &( fragmentUnitData1[ 0 ] ),
+        .packetDataLength = sizeof( fragmentUnitData1 )
+    };
+    H264Packet_t fragment2 =
+    {
+        .pPacketData = &( fragmentUnitData2[ 0 ] ),
+        .packetDataLength = sizeof( fragmentUnitData2 )
+    };
+
+    result = H264Depacketizer_Init( &( ctx ),
+                                    &( packetsArray[ 0 ] ),
+                                    MAX_PACKETS_IN_A_FRAME );
+
+    TEST_ASSERT_EQUAL( H264_RESULT_OK,
+                       result );
+
+    result = H264Depacketizer_AddPacket( &( ctx ),
+                                         &( fragment1 ) );
+
+    TEST_ASSERT_EQUAL( H264_RESULT_OK,
+                       result );
+
+    result = H264Depacketizer_AddPacket( &( ctx ),
+                                         &( fragment2 ) );
+
+    TEST_ASSERT_EQUAL( H264_RESULT_OK,
+                       result );
+
+    result = H264Depacketizer_GetFrame( &( ctx ),
+                                        &( frame ) );
+
+    TEST_ASSERT_EQUAL( H264_RESULT_MALFORMED_PACKET,
+                       result );
+}
+
+/*-----------------------------------------------------------*/
+
+/**
+ * @brief Test H264 depacketization of fragmentation unit with incomplete second
+ * fragment.
+ */
+void test_H264Depacketizer_GetFrame_Fragmentation_Units_Incomplete_Second_Fragment( void )
+{
+    H264Result_t result;
+    H264DepacketizerContext_t ctx = { 0 };
+    H264Packet_t packetsArray[ MAX_PACKETS_IN_A_FRAME ];
+    Frame_t frame =
+    {
+        .pFrameData = &( frameBuffer[ 0 ] ),
+        .frameDataLength = MAX_FRAME_LENGTH
+    };
+    uint8_t fragmentUnitData1[] =
+    {
+        0x1C,       /* FU indicator: Type=28. */
+        0x93,       /* FU header: S=1, Type=19. */
+        0xAA, 0xBB  /* FU payload. */
+    };
+    uint8_t fragmentUnitData2[] =
+    {
+        0x1C,       /* FU indicator: Type=28. */
+        /* Missing FU header and payload. */
+    };
+    H264Packet_t fragment1 =
+    {
+        .pPacketData = &( fragmentUnitData1[ 0 ] ),
+        .packetDataLength = sizeof( fragmentUnitData1 )
+    };
+    H264Packet_t fragment2 =
+    {
+        .pPacketData = &( fragmentUnitData2[ 0 ] ),
+        .packetDataLength = sizeof( fragmentUnitData2 )
+    };
+
+    result = H264Depacketizer_Init( &( ctx ),
+                                    &( packetsArray[ 0 ] ),
+                                    MAX_PACKETS_IN_A_FRAME );
+
+    TEST_ASSERT_EQUAL( H264_RESULT_OK,
+                       result );
+
+    result = H264Depacketizer_AddPacket( &( ctx ),
+                                         &( fragment1 ) );
+
+    TEST_ASSERT_EQUAL( H264_RESULT_OK,
+                       result );
+
+    result = H264Depacketizer_AddPacket( &( ctx ),
+                                         &( fragment2 ) );
+
+    TEST_ASSERT_EQUAL( H264_RESULT_OK,
+                       result );
+
+    result = H264Depacketizer_GetFrame( &( ctx ),
+                                        &( frame ) );
+
+    TEST_ASSERT_EQUAL( H264_RESULT_MALFORMED_PACKET,
+                       result );
+}
+
+/*-----------------------------------------------------------*/
+
+/**
+ * @brief Test H264 depacketization of fragmentation unit with second fragment
+ * of invalid type.
+ */
+void test_H264Depacketizer_GetFrame_Fragmentation_Units_OutOfMemory_Writing_Payload( void )
+{
+    H264Result_t result;
+    H264DepacketizerContext_t ctx = { 0 };
+    H264Packet_t packetsArray[ MAX_PACKETS_IN_A_FRAME ];
+    Frame_t frame =
+    {
+        .pFrameData = &( frameBuffer[ 0 ] ),
+        .frameDataLength = 6 /* Can fit start code and header but not payload. */
+    };
+    uint8_t fragmentUnitData1[] =
+    {
+        0x1C,       /* FU indicator: Type=28. */
+        0x93,       /* FU header: S=1, Type=19. */
+        0xAA, 0xBB  /* FU payload. */
+    };
+    uint8_t fragmentUnitData2[] =
+    {
+        0x1C,       /* FU indicator: Type=28. */
+        0x53,       /* FU header: E=1, Type=19. */
+        0xCC, 0xDD  /* FU payload. */
+    };
+    H264Packet_t fragment1 =
+    {
+        .pPacketData = &( fragmentUnitData1[ 0 ] ),
+        .packetDataLength = sizeof( fragmentUnitData1 )
+    };
+    H264Packet_t fragment2 =
+    {
+        .pPacketData = &( fragmentUnitData2[ 0 ] ),
+        .packetDataLength = sizeof( fragmentUnitData2 )
+    };
+
+    result = H264Depacketizer_Init( &( ctx ),
+                                    &( packetsArray[ 0 ] ),
+                                    MAX_PACKETS_IN_A_FRAME );
+
+    TEST_ASSERT_EQUAL( H264_RESULT_OK,
+                       result );
+
+    result = H264Depacketizer_AddPacket( &( ctx ),
+                                         &( fragment1 ) );
+
+    TEST_ASSERT_EQUAL( H264_RESULT_OK,
+                       result );
+
+    result = H264Depacketizer_AddPacket( &( ctx ),
+                                         &( fragment2 ) );
+
+    TEST_ASSERT_EQUAL( H264_RESULT_OK,
+                       result );
+
+    result = H264Depacketizer_GetFrame( &( ctx ),
+                                        &( frame ) );
+
+    TEST_ASSERT_EQUAL( H264_RESULT_OUT_OF_MEMORY,
+                       result );
+}
+
+/*-----------------------------------------------------------*/
+
+/**
+ * @brief Test H264 depacketization of single nalu packet out of memory case.
+ */
+void test_H264_Depacketizer_GetFrame_SingleNaluPacket_OutOfMemory( void )
+{
+    H264Result_t result;
+    H264DepacketizerContext_t ctx = { 0 };
+    H264Packet_t packetsArray[ MAX_PACKETS_IN_A_FRAME ];
+    uint8_t packetData[] = { 0x68, 0xce, 0x3c, 0x80 };
+    H264Packet_t pkt =
+    {
+        .pPacketData = &( packetData[ 0 ] ),
+        .packetDataLength = sizeof( packetData )
+    };
+    Frame_t frame =
+    {
+        .pFrameData = &( frameBuffer[ 0 ] ),
+        .frameDataLength = 5 /* Can fit start code but not NALU. */
+    };
+
+    result = H264Depacketizer_Init( &( ctx ),
+                                    &( packetsArray[ 0 ] ),
+                                    MAX_PACKETS_IN_A_FRAME );
+
+    TEST_ASSERT_EQUAL( H264_RESULT_OK,
+                       result );
+
+    result = H264Depacketizer_AddPacket( &( ctx ),
+                                         &( pkt ) );
+
+    TEST_ASSERT_EQUAL( H264_RESULT_OK,
+                       result );
+
+    result = H264Depacketizer_GetFrame( &( ctx ),
+                                        &( frame ) );
+
+    TEST_ASSERT_EQUAL( H264_RESULT_OUT_OF_MEMORY,
+                       result );
+}
+
+/*-----------------------------------------------------------*/
+
+/**
  * @brief Validate H264 depacketization happy path to get frame for STAP-A packet.
  */
 void test_H264_Depacketizer_StapAGetFrame( void )
@@ -1119,40 +1632,49 @@ void test_H264_Depacketizer_GetProperties( void )
  */
 void test_H264_Depacketizer_GetProperties_BadParams( void )
 {
-    uint8_t singleNaluPacket[] = { 0x09, 0x10 };
-    uint8_t fuAStartPacket[] = { 0x7C, 0x89, 0xAB, 0xCD };
-    uint8_t fuAEndPacket[] = { 0x7C, 0x49, 0xAB, 0xCD };
     H264Result_t result;
-    H264Packet_t pkt;
+    uint8_t packetData[] = { 0x09, 0x10 };
+    uint32_t properties;
 
-    pkt.pPacketData = &( singleNaluPacket[ 0 ] );
-    pkt.packetDataLength = sizeof( singleNaluPacket );
-
-    result = H264Depacketizer_GetPacketProperties( pkt.pPacketData,
-                                                   pkt.packetDataLength,
+    result = H264Depacketizer_GetPacketProperties( &( packetData[ 0 ] ),
+                                                   sizeof( packetData ),
                                                    NULL );
 
     TEST_ASSERT_EQUAL( H264_RESULT_BAD_PARAM,
                        result );
 
-    pkt.pPacketData = &( fuAStartPacket[ 0 ] );
-    pkt.packetDataLength = sizeof( fuAStartPacket );
-
-    result = H264Depacketizer_GetPacketProperties( pkt.pPacketData,
-                                                   pkt.packetDataLength,
-                                                   NULL );
+    result = H264Depacketizer_GetPacketProperties( NULL,
+                                                   sizeof( packetData ),
+                                                   &( properties ) );
 
     TEST_ASSERT_EQUAL( H264_RESULT_BAD_PARAM,
                        result );
 
-    pkt.pPacketData = &( fuAEndPacket[ 0 ] );
-    pkt.packetDataLength = sizeof( fuAEndPacket );
-
-    result = H264Depacketizer_GetPacketProperties( pkt.pPacketData,
-                                                   pkt.packetDataLength,
-                                                   NULL );
+    result = H264Depacketizer_GetPacketProperties( &( packetData[ 0 ] ),
+                                                   0,
+                                                   &( properties ) );
 
     TEST_ASSERT_EQUAL( H264_RESULT_BAD_PARAM,
+                       result );
+}
+
+/*-----------------------------------------------------------*/
+
+/**
+ * @brief Validate H264_Depacketizer_GetProperties incase of a fragmentation
+ * unit missing FU header.
+ */
+void test_H264_Depacketizer_GetProperties_Fragmentation_Unit_Missing_FU_Header( void )
+{
+    H264Result_t result;
+    uint8_t fuAIncompletePacketData[] = { 0x7C };
+    uint32_t properties;
+
+    result = H264Depacketizer_GetPacketProperties( &( fuAIncompletePacketData[ 0 ] ),
+                                                   sizeof( fuAIncompletePacketData ),
+                                                   &( properties ) );
+
+    TEST_ASSERT_EQUAL( H264_RESULT_MALFORMED_PACKET,
                        result );
 }
 
@@ -1330,7 +1852,7 @@ void test_H264_Depacketizer_GetNalu_PayloadOutOfMemory( void )
     H264DepacketizerContext_t ctx = { 0 };
     Nalu_t nalu;
     uint8_t naluBuffer[ MAX_NALU_LENGTH ];
-    uint8_t packetData[] = { 0x1C, 0x00 };
+    uint8_t packetData[] = { 0x1C, 0x80 };
     H264Packet_t h264Packet;
 
     nalu.pNaluData = &( naluBuffer[ 0 ] );

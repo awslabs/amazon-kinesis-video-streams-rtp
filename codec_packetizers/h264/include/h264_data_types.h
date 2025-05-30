@@ -14,6 +14,8 @@
  * |F|NRI|  Type   |
  * +---------------+
  */
+#define NALU_HEADER_SIZE            1
+
 #define NALU_HEADER_TYPE_MASK       0x1F
 #define NALU_HEADER_TYPE_LOCATION   0
 

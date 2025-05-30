@@ -1,29 +1,9 @@
 #ifndef H265_DEPACKETIZER_H
 #define H265_DEPACKETIZER_H
 
+/* Data types includes. */
 #include "h265_data_types.h"
-#include "h265_packetizer.h"
 
-/* FU Depacketization State */
-typedef struct FuDepacketizationState
-{
-    uint16_t payloadHdr;     /* 2 bytes for HEVC */
-    uint8_t fuHeader;        /* S, E, and Type bits */
-    uint8_t originalNalType; 
-} FuDepacketizationState_t;
-
-/* AP Depacketization State */
-typedef struct ApDepacketizationState
-{
-    uint16_t payloadHdr;                 /* Type 48 for AP */
-    size_t currentUnitIndex;
-    uint8_t naluCount;                   /* Number of NALUs in AP */
-    H265AggregationUnitHeader_t * units; /* Array of aggregation units */
-    size_t currentOffset;            
-    uint8_t firstUnit;               
-} ApDepacketizationState_t;
-
-/* Main Depacketizer Context */
 typedef struct H265DePacketizerContext
 {
     H265Packet_t * pPacketsArray;
@@ -32,15 +12,9 @@ typedef struct H265DePacketizerContext
     size_t tailIndex;
     size_t curPacketIndex;
     size_t packetCount;
-
-    /* Current state */
-    H265PacketType_t currentlyProcessingPacket;
-    FuDepacketizationState_t fuDepacketizationState;
-    ApDepacketizationState_t apDepacketizationState;
-
 } H265DepacketizerContext_t;
 
-/* Function declarations */
+/* Function declarations. */
 H265Result_t H265Depacketizer_Init( H265DepacketizerContext_t * pCtx,
                                     H265Packet_t * pPacketsArray,
                                     size_t packetsArrayLength);
