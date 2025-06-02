@@ -36,6 +36,7 @@ static void PacketizeSingleNaluPacket( H264PacketizerContext_t * pCtx,
     memcpy( ( void * ) &( pPacket->pPacketData[ 0 ] ),
             ( const void * ) &( pCtx->pNaluArray[ pCtx->tailIndex ].pNaluData[ 0 ] ),
             pCtx->pNaluArray[ pCtx->tailIndex ].naluDataLength );
+
     pPacket->packetDataLength = pCtx->pNaluArray[ pCtx->tailIndex ].naluDataLength;
 
     /* Move to the next NALU in the next call to H264Packetizer_GetPacket. */
@@ -100,8 +101,9 @@ static void PacketizeFragmentationUnitPacket( H264PacketizerContext_t * pCtx,
     if( pCtx->fuAPacketizationState.remainingNaluLength == 0 )
     {
         /* Reset state. */
-        pCtx->fuAPacketizationState.naluDataIndex = 0;
-        pCtx->fuAPacketizationState.naluHeader = 0;
+        memset( &( pCtx->fuAPacketizationState ),
+                0,
+                sizeof( FuAPacketizationState_t ) );
         pCtx->currentlyProcessingPacket = H264_PACKET_NONE;
 
         /* Move to the next NALU in the next call to H264Packetizer_GetPacket. */
@@ -135,10 +137,10 @@ H264Result_t H264Packetizer_Init( H264PacketizerContext_t * pCtx,
         pCtx->naluCount = 0;
 
         pCtx->currentlyProcessingPacket = H264_PACKET_NONE;
-        pCtx->fuAPacketizationState.naluHeader = 0;
-        pCtx->fuAPacketizationState.naluDataIndex = 0;
-        pCtx->fuAPacketizationState.remainingNaluLength = 0;
 
+        memset( &( pCtx->fuAPacketizationState ),
+                0,
+                sizeof( FuAPacketizationState_t ) );
     }
 
     return result;
@@ -152,8 +154,8 @@ H264Result_t H264Packetizer_AddFrame( H264PacketizerContext_t * pCtx,
     H264Result_t result = H264_RESULT_OK;
     Nalu_t nalu;
     size_t currentIndex = 0, naluStartIndex = 0, remainingFrameLength;
-    uint8_t startCode1[] = { 0x00, 0x00, 0x00, 0x01 };
-    uint8_t startCode2[] = { 0x00, 0x00, 0x01 };
+    const uint8_t startCode1[] = { 0x00, 0x00, 0x00, 0x01 }; /* 4-byte start code. */
+    const uint8_t startCode2[] = { 0x00, 0x00, 0x01 }; /* 3-byte start code. */
     uint8_t firstStartCode = 1;
 
     if( ( pCtx == NULL ) ||
@@ -182,14 +184,16 @@ H264Result_t H264Packetizer_AddFrame( H264PacketizerContext_t * pCtx,
                 }
                 else
                 {
+                    /* Create NAL unit from data between start codes. */
                     nalu.pNaluData = &( pFrame->pFrameData[ naluStartIndex ] );
                     nalu.naluDataLength = currentIndex - naluStartIndex;
+
                     result = H264Packetizer_AddNalu( pCtx,
                                                      &( nalu ) );
                 }
 
                 naluStartIndex = currentIndex + sizeof( startCode1 );
-                currentIndex = currentIndex + sizeof( startCode1 );
+                currentIndex = naluStartIndex;
                 continue;
             }
         }
@@ -207,14 +211,16 @@ H264Result_t H264Packetizer_AddFrame( H264PacketizerContext_t * pCtx,
                 }
                 else
                 {
+                    /* Create NAL unit from data between start codes. */
                     nalu.pNaluData = &( pFrame->pFrameData[ naluStartIndex ] );
                     nalu.naluDataLength = currentIndex - naluStartIndex;
+
                     result = H264Packetizer_AddNalu( pCtx,
                                                      &( nalu ) );
                 }
 
                 naluStartIndex = currentIndex + sizeof( startCode2 );
-                currentIndex = currentIndex + sizeof( startCode2 );
+                currentIndex = naluStartIndex;
                 continue;
             }
         }
@@ -222,12 +228,21 @@ H264Result_t H264Packetizer_AddFrame( H264PacketizerContext_t * pCtx,
         currentIndex += 1;
     }
 
-    if( naluStartIndex > 0 )
+    /* Handle last NAL unit in frame. */
+    if( result == H264_RESULT_OK )
     {
-        nalu.pNaluData = &( pFrame->pFrameData[ naluStartIndex ] );
-        nalu.naluDataLength = pFrame->frameDataLength - naluStartIndex;
-        result = H264Packetizer_AddNalu( pCtx,
-                                         &( nalu ) );
+        if( naluStartIndex > 0 )
+        {
+            nalu.pNaluData = &( pFrame->pFrameData[ naluStartIndex ] );
+            nalu.naluDataLength = pFrame->frameDataLength - naluStartIndex;
+
+            result = H264Packetizer_AddNalu( pCtx,
+                                             &( nalu ) );
+        }
+        else
+        {
+            result = H264_RESULT_MALFORMED_PACKET;
+        }
     }
 
     return result;
@@ -241,9 +256,18 @@ H264Result_t H264Packetizer_AddNalu( H264PacketizerContext_t * pCtx,
     H264Result_t result = H264_RESULT_OK;
 
     if( ( pCtx == NULL ) ||
-        ( pNalu == NULL ) )
+        ( pNalu == NULL ) ||
+        ( pNalu->pNaluData == NULL ) )
     {
         result = H264_RESULT_BAD_PARAM;
+    }
+
+    if( result == H264_RESULT_OK )
+    {
+        if( pNalu->naluDataLength < NALU_HEADER_SIZE )
+        {
+            result = H264_RESULT_MALFORMED_PACKET;
+        }
     }
 
     if( result == H264_RESULT_OK )
@@ -273,7 +297,9 @@ H264Result_t H264Packetizer_GetPacket( H264PacketizerContext_t * pCtx,
     H264Result_t result = H264_RESULT_OK;
 
     if( ( pCtx == NULL ) ||
-        ( pPacket == NULL ) )
+        ( pPacket == NULL ) ||
+        ( pPacket->pPacketData == NULL ) ||
+        ( pPacket->packetDataLength == 0 ) )
     {
         result = H264_RESULT_BAD_PARAM;
     }
