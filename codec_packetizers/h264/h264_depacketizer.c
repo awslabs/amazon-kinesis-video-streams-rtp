@@ -175,8 +175,8 @@ static H264Result_t DepacketizeAggregationPacket( H264DepacketizerContext_t * pC
         result = H264_RESULT_MALFORMED_PACKET;
     }
 
-    /* If we do not have enough data left in this packet, move to the next
-     * packet in the next call to H264Depacketizer_GetNalu. */
+    /* Move to the next packet once current packet content is completely
+     * parsed. */
     if( pCtx->curPacketIndex >= curPacketLength )
     {
         pCtx->curPacketIndex = 0;

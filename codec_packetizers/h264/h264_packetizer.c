@@ -154,8 +154,8 @@ H264Result_t H264Packetizer_AddFrame( H264PacketizerContext_t * pCtx,
     H264Result_t result = H264_RESULT_OK;
     Nalu_t nalu;
     size_t currentIndex = 0, naluStartIndex = 0, remainingFrameLength;
-    uint8_t startCode1[] = { 0x00, 0x00, 0x00, 0x01 }; /* 4-byte start code. */
-    uint8_t startCode2[] = { 0x00, 0x00, 0x01 }; /* 3-byte start code. */
+    const uint8_t startCode1[] = { 0x00, 0x00, 0x00, 0x01 }; /* 4-byte start code. */
+    const uint8_t startCode2[] = { 0x00, 0x00, 0x01 }; /* 3-byte start code. */
     uint8_t firstStartCode = 1;
 
     if( ( pCtx == NULL ) ||

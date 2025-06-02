@@ -230,8 +230,8 @@ H265Result_t H265Packetizer_AddFrame( H265PacketizerContext_t * pCtx,
     H265Result_t result = H265_RESULT_OK;
     H265Nalu_t nalu = { 0 };
     size_t currentIndex = 0, naluStartIndex = 0, remainingFrameLength = 0;
-    uint8_t startCode1[] = { 0x00, 0x00, 0x00, 0x01 }; /* 4-byte start code. */
-    uint8_t startCode2[] = { 0x00, 0x00, 0x01 }; /* 3-byte start code. */
+    const uint8_t startCode1[] = { 0x00, 0x00, 0x00, 0x01 }; /* 4-byte start code. */
+    const uint8_t startCode2[] = { 0x00, 0x00, 0x01 }; /* 3-byte start code. */
     uint8_t firstStartCode = 1;
 
     if( ( pCtx == NULL ) ||
