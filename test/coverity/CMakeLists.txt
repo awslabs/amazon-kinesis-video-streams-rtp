@@ -49,7 +49,7 @@ if( COV_ANALYSIS )
         add_library( coverity_analysis
                      ${RTP_SOURCES} )
 
-        # SDP public include path.
+        # RTP public include path.
         target_include_directories( coverity_analysis PUBLIC
                                     ${RTP_INCLUDE_PUBLIC_DIRS}
                                     ${MODULE_ROOT_DIR}/test/coverity )
