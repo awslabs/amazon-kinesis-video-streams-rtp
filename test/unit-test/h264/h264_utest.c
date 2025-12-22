@@ -2164,3 +2164,234 @@ void test_H264_Depacketizer_GetNalu_InvalidTailIndex( void )
 }
 
 /*-----------------------------------------------------------*/
+
+/**
+ * @brief Validate H264_Depacketizer_GetNalu incase of integer overflow protection.
+ */
+void test_H264_Depacketizer_GetNalu_IntegerOverflow_Protection( void )
+{
+    H264Result_t result;
+    H264DepacketizerContext_t ctx = { 0 };
+    H264Packet_t packetsArray[ MAX_PACKETS_IN_A_FRAME ];
+    Nalu_t nalu;
+    uint8_t naluBuffer[ 100 ];
+    uint8_t fragmentUnitData[] =
+    {
+        0x1C,       /* FU indicator: Type=28. */
+        0x93,       /* FU header: S=1, Type=19. */
+        0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF, 0x11, 0x22  /* FU payload (8 bytes). */
+    };
+    H264Packet_t fragment =
+    {
+        .pPacketData = &( fragmentUnitData[ 0 ] ),
+        .packetDataLength = sizeof( fragmentUnitData )
+    };
+
+    result = H264Depacketizer_Init( &( ctx ),
+                                    &( packetsArray[ 0 ] ),
+                                    MAX_PACKETS_IN_A_FRAME );
+
+    TEST_ASSERT_EQUAL( H264_RESULT_OK,
+                       result );
+
+    result = H264Depacketizer_AddPacket( &( ctx ),
+                                         &( fragment ) );
+
+    TEST_ASSERT_EQUAL( H264_RESULT_OK,
+                       result );
+
+    nalu.pNaluData = &( naluBuffer[ 0 ] );
+    nalu.naluDataLength = 5;
+
+    result = H264Depacketizer_GetNalu( &( ctx ),
+                                       &( nalu ) );
+
+    TEST_ASSERT_EQUAL( H264_RESULT_OUT_OF_MEMORY,
+                       result );
+}
+
+/*-----------------------------------------------------------*/
+
+/**
+ * @brief Validate H264_Depacketizer_GetNalu incase of integer overflow protection
+ * with payloadLength exceeding buffer.
+ */
+void test_H264_Depacketizer_GetNalu_IntegerOverflow_PayloadExceedsBuffer( void )
+{
+    H264Result_t result;
+    H264DepacketizerContext_t ctx = { 0 };
+    H264Packet_t packetsArray[ MAX_PACKETS_IN_A_FRAME ];
+    Nalu_t nalu;
+    uint8_t naluBuffer[ 10 ];
+    uint8_t fragmentUnitData[] =
+    {
+        0x1C,       /* FU indicator: Type=28. */
+        0x93,       /* FU header: S=1, Type=19. */
+        0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF, 0x11, 0x22, 0x33, 0x44, 0x55  /* FU payload (11 bytes). */
+    };
+    H264Packet_t fragment =
+    {
+        .pPacketData = &( fragmentUnitData[ 0 ] ),
+        .packetDataLength = sizeof( fragmentUnitData )
+    };
+
+    result = H264Depacketizer_Init( &( ctx ),
+                                    &( packetsArray[ 0 ] ),
+                                    MAX_PACKETS_IN_A_FRAME );
+
+    TEST_ASSERT_EQUAL( H264_RESULT_OK,
+                       result );
+
+    result = H264Depacketizer_AddPacket( &( ctx ),
+                                         &( fragment ) );
+
+    TEST_ASSERT_EQUAL( H264_RESULT_OK,
+                       result );
+
+    nalu.pNaluData = &( naluBuffer[ 0 ] );
+    nalu.naluDataLength = sizeof( naluBuffer );
+
+    result = H264Depacketizer_GetNalu( &( ctx ),
+                                       &( nalu ) );
+
+    TEST_ASSERT_EQUAL( H264_RESULT_OUT_OF_MEMORY,
+                       result );
+}
+
+/*-----------------------------------------------------------*/
+
+/**
+ * @brief Validate H264_Depacketizer_StapAGetNalu incase of integer overflow protection
+ * when reading NALU data.
+ */
+void test_H264_Depacketizer_StapAGetNalu_IntegerOverflow_Protection_NaluData( void )
+{
+    H264Result_t result;
+    H264Packet_t pkt;
+    H264DepacketizerContext_t ctx = { 0 };
+    Nalu_t nalu;
+    uint8_t naluBuffer[ MAX_NALU_LENGTH ];
+    H264Packet_t packetsArray[ MAX_PACKETS_IN_A_FRAME ];
+    uint8_t packetData[] =
+    {
+        /* STAP-A header. F=0, NRI=0, Type=24. */
+        0x18,
+        /* NALU 1 length (large value). */
+        0xFF, 0xFF,
+        /* NALU 1 payload (incomplete). */
+        0xAB, 0xCD,
+    };
+
+    result = H264Depacketizer_Init( &( ctx ),
+                                    &( packetsArray[ 0 ] ),
+                                    MAX_PACKETS_IN_A_FRAME );
+
+    TEST_ASSERT_EQUAL( H264_RESULT_OK,
+                       result );
+
+    pkt.pPacketData = &( packetData[ 0 ] );
+    pkt.packetDataLength = sizeof( packetData );
+
+    result = H264Depacketizer_AddPacket( &( ctx ),
+                                         &( pkt ) );
+
+    TEST_ASSERT_EQUAL( H264_RESULT_OK,
+                       result );
+
+    nalu.pNaluData = &( naluBuffer[ 0 ] );
+    nalu.naluDataLength = MAX_NALU_LENGTH;
+
+    result = H264Depacketizer_GetNalu( &( ctx ),
+                                       &( nalu ) );
+
+    TEST_ASSERT_EQUAL( H264_RESULT_MALFORMED_PACKET,
+                       result );
+}
+
+/*-----------------------------------------------------------*/
+
+/**
+ * @brief Test STAP-A packet with length less than STAP_A_NALU_SIZE (2 bytes).
+ * This tests line 135: STAP_A_NALU_SIZE <= curPacketLength
+ */
+void test_H264_Depacketizer_StapAGetNalu_PacketTooSmall( void )
+{
+    H264Result_t result;
+    H264Packet_t pkt;
+    H264DepacketizerContext_t ctx = { 0 };
+    Nalu_t nalu;
+    uint8_t naluBuffer[ MAX_NALU_LENGTH ];
+    H264Packet_t packetsArray[ MAX_PACKETS_IN_A_FRAME ];
+    uint8_t packetData[] =
+    {
+        0x18
+    };
+
+    result = H264Depacketizer_Init( &( ctx ),
+                                    &( packetsArray[ 0 ] ),
+                                    MAX_PACKETS_IN_A_FRAME );
+
+    TEST_ASSERT_EQUAL( H264_RESULT_OK,
+                       result );
+
+    pkt.pPacketData = &( packetData[ 0 ] );
+    pkt.packetDataLength = sizeof( packetData );
+
+    result = H264Depacketizer_AddPacket( &( ctx ),
+                                         &( pkt ) );
+
+    TEST_ASSERT_EQUAL( H264_RESULT_OK,
+                       result );
+
+    nalu.pNaluData = &( naluBuffer[ 0 ] );
+    nalu.naluDataLength = MAX_NALU_LENGTH;
+
+    result = H264Depacketizer_GetNalu( &( ctx ),
+                                       &( nalu ) );
+
+    TEST_ASSERT_EQUAL( H264_RESULT_MALFORMED_PACKET,
+                       result );
+}
+
+/*-----------------------------------------------------------*/
+
+/**
+ * @brief Test STAP-A packet with 2-byte length.
+ */
+void test_H264_Depacketizer_StapAGetNalu_TwoBytePacket( void )
+{
+    H264Result_t result;
+    H264Packet_t pkt;
+    H264DepacketizerContext_t ctx = { 0 };
+    Nalu_t nalu;
+    uint8_t naluBuffer[ MAX_NALU_LENGTH ];
+    H264Packet_t packetsArray[ MAX_PACKETS_IN_A_FRAME ];
+    uint8_t packetData[] = { 0x18, 0x00 };
+
+    result = H264Depacketizer_Init( &( ctx ),
+                                    &( packetsArray[ 0 ] ),
+                                    MAX_PACKETS_IN_A_FRAME );
+
+    TEST_ASSERT_EQUAL( H264_RESULT_OK,
+                       result );
+
+    pkt.pPacketData = &( packetData[ 0 ] );
+    pkt.packetDataLength = 2;
+
+    result = H264Depacketizer_AddPacket( &( ctx ),
+                                         &( pkt ) );
+
+    TEST_ASSERT_EQUAL( H264_RESULT_OK,
+                       result );
+
+    nalu.pNaluData = &( naluBuffer[ 0 ] );
+    nalu.naluDataLength = MAX_NALU_LENGTH;
+
+    result = H264Depacketizer_GetNalu( &( ctx ),
+                                       &( nalu ) );
+
+    TEST_ASSERT_EQUAL( H264_RESULT_MALFORMED_PACKET,
+                       result );
+}
+
+/*-----------------------------------------------------------*/

@@ -88,7 +88,8 @@ static H264Result_t DepacketizeFragmentationUnitPacket( H264DepacketizerContext_
 
         /* Write NALU payload. */
         payloadLength = curPacketLength - FU_A_HEADER_SIZE;
-        if( ( curNaluDataIndex + payloadLength ) <= pNalu->naluDataLength )
+        if( ( payloadLength <= pNalu->naluDataLength ) &&
+            ( curNaluDataIndex <= ( pNalu->naluDataLength - payloadLength ) ) )
         {
             memcpy( ( void * ) &( pNalu->pNaluData[ curNaluDataIndex ] ),
                     ( const void * ) &( pCurPacketData[ FU_A_PAYLOAD_OFFSET ] ),
@@ -131,7 +132,8 @@ static H264Result_t DepacketizeAggregationPacket( H264DepacketizerContext_t * pC
     }
 
     /* Is there enough data left in the packet to read the next NALU size? */
-    if( ( pCtx->curPacketIndex + STAP_A_NALU_SIZE ) <= curPacketLength )
+    if( ( curPacketLength >= STAP_A_NALU_SIZE ) &&
+        ( pCtx->curPacketIndex <= ( curPacketLength - STAP_A_NALU_SIZE ) ) )
     {
         /* Read NALU length. */
         naluLength = pCurPacketData[ pCtx->curPacketIndex ];
@@ -141,7 +143,8 @@ static H264Result_t DepacketizeAggregationPacket( H264DepacketizerContext_t * pC
         pCtx->curPacketIndex += STAP_A_NALU_SIZE;
 
         /* Is there enough data left in the packet to read the next NALU? */
-        if( ( pCtx->curPacketIndex + naluLength ) <= curPacketLength )
+        if( ( naluLength <= curPacketLength ) &&
+            ( pCtx->curPacketIndex <= ( curPacketLength - naluLength ) ) )
         {
             /* Is there enough space in the output buffer? */
             if( naluLength <= pNalu->naluDataLength)

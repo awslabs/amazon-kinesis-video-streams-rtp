@@ -90,7 +90,8 @@ static H265Result_t DepacketizeFragmentationUnitPacket( H265DepacketizerContext_
 
         /* Write NALU payload. */
         payloadLength = curPacketLength - FU_PAYLOAD_HEADER_SIZE - FU_HEADER_SIZE;
-        if( ( curNaluDataIndex + payloadLength ) <= pNalu->naluDataLength )
+        if( ( payloadLength <= pNalu->naluDataLength ) &&
+            ( curNaluDataIndex <= ( pNalu->naluDataLength - payloadLength ) ) )
         {
             memcpy( ( void * ) &( pNalu->pNaluData[ curNaluDataIndex ] ),
                     ( const void * ) &( pCurPacketData[ FU_PAYLOAD_HEADER_SIZE + FU_HEADER_SIZE ] ),
@@ -144,7 +145,8 @@ static H265Result_t DepacketizeAggregationPacket( H265DepacketizerContext_t * pC
         pCtx->curPacketIndex += AP_NALU_LENGTH_FIELD_SIZE;
 
         /* Is there enough data left in the packet to read the next NALU? */
-        if( ( pCtx->curPacketIndex + naluLength ) <= curPacketLength )
+        if( ( naluLength <= curPacketLength ) &&
+            ( pCtx->curPacketIndex <= ( curPacketLength - naluLength ) ) )
         {
             /* Is there enough space in the output buffer? */
             if( naluLength <= pNalu->naluDataLength )

@@ -455,7 +455,8 @@ H265Result_t H265Packetizer_GetPacket( H265PacketizerContext_t * pCtx,
                     naluSize = pCtx->pNaluArray[ pCtx->tailIndex + i ].naluDataLength;
 
                     /* Can we fit in this NAL unit? */
-                    if( ( aggregatePacketSize + AP_NALU_LENGTH_FIELD_SIZE + naluSize ) <= pPacket->packetDataLength )
+                    if( ( pPacket->packetDataLength >= ( AP_NALU_LENGTH_FIELD_SIZE + naluSize ) ) &&
+                        ( aggregatePacketSize <= ( pPacket->packetDataLength - AP_NALU_LENGTH_FIELD_SIZE - naluSize ) ) )
                     {
                         aggregatePacketSize += ( AP_NALU_LENGTH_FIELD_SIZE + naluSize );
                         nalusToAggregate += 1;

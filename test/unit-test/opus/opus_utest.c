@@ -353,6 +353,15 @@ void test_Opus_Depacketizer_AddPacket_BadParams( void )
 
     TEST_ASSERT_EQUAL( result,
                        OPUS_RESULT_BAD_PARAM );
+
+    pkt.pPacketData = NULL;
+    pkt.packetDataLength = 10;
+
+    result = OpusDepacketizer_AddPacket( &( ctx ),
+                                         &( pkt ) );
+
+    TEST_ASSERT_EQUAL( result,
+                       OPUS_RESULT_BAD_PARAM );
 }
 
 /*-----------------------------------------------------------*/
@@ -517,6 +526,39 @@ void test_Opus_Depacketizer_GetFrame_NoPackets( void )
 
     TEST_ASSERT_EQUAL( OPUS_RESULT_NO_MORE_PACKETS,
                        result );
+}
+
+/*-----------------------------------------------------------*/
+
+/**
+ * @brief Test OpusDepacketizer_GetFrame with null packet data in stored packets
+ */
+void test_Opus_Depacketizer_GetFrame_NullStoredPacketData( void )
+{
+    OpusResult_t result;
+    OpusDepacketizerContext_t ctx = { 0 };
+    OpusPacket_t packetsArray[ MAX_PACKET_IN_A_FRAME ];
+    OpusFrame_t frame;
+    uint8_t packetData[] = { 0x01, 0x02, 0x03 };
+
+    result = OpusDepacketizer_Init( &( ctx ),
+                                    &( packetsArray[ 0 ] ),
+                                    MAX_PACKET_IN_A_FRAME );
+    TEST_ASSERT_EQUAL( OPUS_RESULT_OK, result );
+
+    /* Manually corrupt stored packet data to simulate memory corruption */
+    packetsArray[ 0 ].pPacketData = packetData;
+    packetsArray[ 0 ].packetDataLength = sizeof( packetData );
+    ctx.packetCount = 1;
+
+    /* Corrupt the stored packet data pointer */
+    packetsArray[ 0 ].pPacketData = NULL;
+
+    frame.pFrameData = &( frameBuffer[ 0 ] );
+    frame.frameDataLength = MAX_FRAME_LENGTH;
+
+    result = OpusDepacketizer_GetFrame( &( ctx ), &( frame ) );
+    TEST_ASSERT_EQUAL( OPUS_RESULT_OUT_OF_MEMORY, result );
 }
 
 /*-----------------------------------------------------------*/

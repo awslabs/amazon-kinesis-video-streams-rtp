@@ -36,6 +36,7 @@ OpusResult_t OpusDepacketizer_AddPacket( OpusDepacketizerContext_t * pCtx,
 
     if( ( pCtx == NULL ) ||
         ( pPacket == NULL ) ||
+        ( pPacket->pPacketData == NULL ) ||
         ( pPacket->packetDataLength == 0 ) )
     {
         result = OPUS_RESULT_BAD_PARAM;
@@ -88,7 +89,8 @@ OpusResult_t OpusDepacketizer_GetFrame( OpusDepacketizerContext_t * pCtx,
     {
         pPacket = &( pCtx->pPacketsArray[ i ] );
 
-        if( ( pFrame->frameDataLength - currentFrameDataIndex ) >= pPacket->packetDataLength )
+        if( ( pPacket->pPacketData != NULL ) &&
+            ( ( pFrame->frameDataLength - currentFrameDataIndex ) >= pPacket->packetDataLength ) )
         {
             memcpy( ( void * ) &( pFrame->pFrameData[ currentFrameDataIndex ] ),
                     ( const void * ) &( pPacket->pPacketData[ 0 ] ),
